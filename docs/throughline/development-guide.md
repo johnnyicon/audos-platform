@@ -120,9 +120,55 @@ See [`throughline-api-reference.md`](./throughline-api-reference.md) for the ful
 
 ---
 
+## Creating New Apps vs. Editing Existing Apps
+
+This is the most important workflow distinction on the platform.
+
+### Editing existing apps — use GitHub
+
+Any app that already exists in `.published-source/` can be edited freely via GitHub:
+
+1. Edit `audos-workspace/apps/{app-id}/App.tsx` locally
+2. Commit and push to `main`
+3. Platform auto-syncs — changes are live
+
+### Creating new apps — requires Otto first
+
+New apps must go through a two-step process. GitHub sync alone is **not sufficient** to make a new app appear in the UI because:
+
+- The platform serves apps from `.published-source/`, which is write-protected from GitHub
+- `recompile()` does not process new apps from the `apps/` folder
+- When GitHub sync is enabled, Otto's code editor is locked ("code editing frozen")
+
+**Correct workflow for new apps:**
+
+```
+1. Open Developer tab → disable GitHub sync
+2. Tell Otto: "Create a new app called [name] at apps/[id]/App.tsx"
+3. Tell Otto: "Add [app] to the dock in Desktop.tsx"
+4. Publish changes via Otto
+5. Re-enable GitHub sync in Developer tab
+6. All future edits to that app can be done via GitHub
+```
+
+> **Note:** `Desktop.tsx` has a hardcoded app list. Adding an app to `config.json` alone does not make it appear in the dock — it must also be added to `Desktop.tsx`. Otto handles this when creating the app; after that, `Desktop.tsx` edits can be done via GitHub.
+
+### Summary table
+
+| Task | GitHub | Otto |
+|------|--------|------|
+| Edit existing app code | ✅ Preferred | ✅ Optional |
+| Create new app | ❌ Cannot | ✅ Required |
+| Edit `Desktop.tsx` | ✅ Works | ✅ Works |
+| Edit `config.json` | ✅ Works | ✅ Works |
+| Delete an app | ❌ Cannot | ✅ Required |
+
+---
+
 ## What Otto Manages (Do Not Edit Locally)
 
 - **Landing pages** — use `delegate_landing_page_edit` via Otto
 - **workspace-branding.json** — use Otto to update
 - **Domain config** — platform-managed
 - **Database table schemas** — create via Otto using `db_create_table`
+- **`.published-source/`** — platform-managed compilation output; do not commit this directory
