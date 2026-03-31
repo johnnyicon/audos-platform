@@ -33,24 +33,22 @@ These environments are **not competing alternatives** - they work together. The 
 
 Think of the Audos platform as your **backend infrastructure** and local development as your **business logic layer**:
 
-```
-┌─────────────────────────────────────────────────────────┐
-│  Local Development (Your Machine)                       │
-│  • Scripts & business logic                             │
-│  • Data analysis & processing                           │
-│  • Testing & debugging                                  │
-│  • CLI tools & automation                               │
-└──────────────────┬──────────────────────────────────────┘
-                   │ HTTP APIs
-                   │
-┌──────────────────▼──────────────────────────────────────┐
-│  Audos Platform (Cloud)                                 │
-│  • Database tables (PostgreSQL)                         │
-│  • Server functions (webhooks, endpoints)               │
-│  • React apps (hosted, compiled)                        │
-│  • Landing pages                                        │
-│  • CRM, analytics, payments                             │
-└─────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    LOCAL["Local Development — Your Machine
+    • Scripts & business logic
+    • Data analysis & processing
+    • Testing & debugging
+    • CLI tools & automation"]
+
+    PLATFORM["Audos Platform — Cloud
+    • Database tables (PostgreSQL)
+    • Server functions (webhooks, endpoints)
+    • React apps (hosted, compiled)
+    • Landing pages
+    • CRM, analytics, payments"]
+
+    LOCAL -->|HTTP APIs| PLATFORM
 ```
 
 ---

@@ -762,16 +762,15 @@ data.schedule.forEach(post => {
 
 ### Decision Tree
 
-```
-Does more than one client need to call this?
-├─ Yes → Build composite API
-└─ No
-   └─ Is it triggered by webhook/schedule?
-      ├─ Yes → Build composite API
-      └─ No
-         └─ Is the pattern stable and reusable?
-            ├─ Yes → Consider building composite API (future-proofing)
-            └─ No → Orchestrate locally, extract later if needed
+```mermaid
+flowchart TD
+    A{"Does more than one\nclient need this?"}
+    A -->|Yes| BUILD["✅ Build composite API"]
+    A -->|No| B{"Triggered by\nwebhook or schedule?"}
+    B -->|Yes| BUILD
+    B -->|No| C{"Is the pattern\nstable and reusable?"}
+    C -->|Yes| CONSIDER["⚡ Consider composite API\nfor future-proofing"]
+    C -->|No| LOCAL["🖥 Orchestrate locally\nextract later if needed"]
 ```
 
 ---

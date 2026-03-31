@@ -34,8 +34,8 @@ workspace-{uuid}/
 ```
 apps/
 ├── Home.tsx          # Main dashboard
-|   Briefing.tsx      # Guest research/briefings
-|   Signature.tsx     # Voice profiles
+├── Briefing.tsx      # Guest research/briefings
+├── Signature.tsx     # Voice profiles
 └── Studio.tsx        # Reels/content management
 ```
 
