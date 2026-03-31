@@ -1,25 +1,19 @@
 # Installing the Audos Platform Skill
 
-## Global Install (recommended)
+Install this skill into any project that is built on the Audos platform. The symlink points to this repo on your local machine, so it only needs to be set up once per developer environment.
 
-Symlinks the skill into Claude Code's global skills directory so it's available in any project:
-
-```bash
-ln -s /Users/kanekoa/Workspace/audos-platform/skill ~/.claude/skills/audos-platform
-```
-
-## Per-Project Install
-
-Symlinks the skill into a specific project's Claude skills directory:
+## Install
 
 ```bash
-mkdir -p /path/to/your-project/.claude/skills
-ln -s /Users/kanekoa/Workspace/audos-platform/skill /path/to/your-project/.claude/skills/audos-platform
+mkdir -p /path/to/your-audos-project/.claude/skills
+ln -s /Users/kanekoa/Workspace/audos-platform/skill /path/to/your-audos-project/.claude/skills/audos-platform
 ```
+
+> The `.claude/skills/` folder and its symlinks are gitignored — they're local developer setup, not checked in.
 
 ## Add the Rule to CLAUDE.md
 
-Add the following to the project's `CLAUDE.md` so Claude Code automatically knows to use this skill when working with Audos:
+Add the following to the project's `CLAUDE.md`:
 
 ```markdown
 ## Audos Platform
@@ -34,8 +28,6 @@ This project runs on the Audos platform. When working on anything that touches:
 
 ## Verify
 
-After installing, confirm the symlink resolves:
-
 ```bash
-ls ~/.claude/skills/audos-platform/SKILL.md
+ls /path/to/your-audos-project/.claude/skills/audos-platform/SKILL.md
 ```
