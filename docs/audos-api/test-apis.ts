@@ -22,13 +22,14 @@ console.log("1. Testing Database API...");
 const tables = await post("db-api", { action: "list-tables" });
 console.log(`   Found ${(tables.tables ?? []).length} tables`);
 
-// 2. DATABASE: Insert a test record
+// 2. DATABASE: Insert a test record (title is required)
 console.log("2. Inserting test record...");
 const insert = await post("db-api", {
   action: "insert",
   table: "dashboard_activity",
   data: {
     activity_type: "api_test",
+    title: "API Test",
     description: "Test from local coding agent",
     metadata: { source: "off-platform", test: true },
   },
@@ -60,6 +61,8 @@ const web = await post("web-api", {
   action: "fetch",
   url: "https://www.trythroughline.com/",
 });
-console.log(`   Fetched page, content length: ${web.contentLength ?? 0} chars`);
+console.log(`   Title: ${web.title ?? "ERROR"}`);
+console.log(`   Content length: ${web.contentLength ?? 0} chars (raw: ${web.rawLength ?? 0})`);
+
 
 console.log("\n✅ All API tests complete!");
