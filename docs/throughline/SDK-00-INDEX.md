@@ -16,6 +16,12 @@ This index contains all SDK documentation files for building Throughline on the 
 | 04 | **SDK-04-DEVELOPMENT-WORKFLOW.md** | Complete workflow guide combining local + platform | [Download](https://storage.googleapis.com/audos-images/workspace-media/8f1ad824-832f-4af8-b77e-ab931a250625/1774988028098_quwvzrxx.md) |
 | 05 | **SDK-05-PRE-BUILD-ANSWERS.md** | Answers to 7 pre-build questions for Throughline | [Download](https://storage.googleapis.com/audos-images/workspace-media/8f1ad824-832f-4af8-b77e-ab931a250625/1775139847883_v0hgwuw4.md) |
 | 06 | **SDK-06-API-QUICK-REFERENCE.md** | API quick reference card with all endpoints | [Download](https://storage.googleapis.com/audos-images/workspace-media/8f1ad824-832f-4af8-b77e-ab931a250625/1775140047649_2u0yga2p.md) |
+| 07 | **SDK-07-THROUGHLINE-IMPLEMENTATION-GUIDE.md** | Throughline-specific build guide | — |
+| 08 | **SDK-08-DEBUGGING-AND-KNOWN-ISSUES.md** | Debug patterns and known issues | — |
+| 09 | **SDK-09-ARCHITECTURE-ROUND-2.md** | Architecture deep dive round 2 | — |
+| 10 | **SDK-10-GITHUB-SYNC-NEW-APP-INVESTIGATION.md** | GitHub sync + new app creation investigation | — |
+| 11 | **SDK-11-DESKTOP-DOCK-BIDIRECTIONAL-SYNC.md** | Desktop dock removal + bidirectional GitHub sync confirmed | — |
+| 12 | **SDK-12-DATABASE-SDK.md** | Comprehensive database SDK: Otto MCP tools, REST API, in-app hooks (`useWorkspaceDB`, `window.__workspaceDb`) | — |
 
 ---
 
