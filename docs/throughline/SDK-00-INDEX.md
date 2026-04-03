@@ -22,6 +22,7 @@ This index contains all SDK documentation files for building Throughline on the 
 | 10 | **SDK-10-GITHUB-SYNC-NEW-APP-INVESTIGATION.md** | GitHub sync + new app creation investigation | — |
 | 11 | **SDK-11-DESKTOP-DOCK-BIDIRECTIONAL-SYNC.md** | Desktop dock removal + bidirectional GitHub sync confirmed | — |
 | 12 | **SDK-12-DATABASE-SDK.md** | Comprehensive database SDK: Otto MCP tools, REST API, in-app hooks (`useWorkspaceDB`, `window.__workspaceDb`) | — |
+| 13 | **SDK-13-DATABASE-FAQ.md** | Auth, session scoping, multi-tenant isolation — confirmed patterns for production use | — |
 
 ---
 
