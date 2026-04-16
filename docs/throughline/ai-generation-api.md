@@ -6,9 +6,11 @@
 >
 > **Content-Type:** `application/json`
 
-Generate text content using 15+ language models from OpenAI, Anthropic, Google, and other providers.
+Generate text content using OpenAI models via the Audos proxy.
 
-**For a complete capability map, latency analysis, and known limitations, see [AI Hook Capability Matrix](../AI-HOOK-CAPABILITY-MATRIX.md).**
+**For a complete capability map, known limitations, and the OpenAI-proxy quirks that affect every caller, see [AI Hook Capability Matrix](../AI-HOOK-CAPABILITY-MATRIX.md).** Read the "Critical Platform Quirks" section first.
+
+**Critical decision — `generate` vs `chat`:** The `generate` action has a hardcoded 1000-token output cap that ignores `maxTokens`. The `chat` action does not. For any structured content that may exceed 1000 tokens (arc generation, show notes, research synthesis, multi-section outputs), use `chat` with a single user message wrapping your prompt. This is not a style preference — it is the only way to get full-length output from this API.
 
 ---
 
@@ -35,7 +37,7 @@ Generate text from a prompt.
 | `prompt` | string | Yes | The user prompt / what you want generated |
 | `model` | string | No | Model to use (default: `gpt-4o-mini`); see [capability matrix](../AI-HOOK-CAPABILITY-MATRIX.md) for full list |
 | `systemPrompt` | string | No | System instructions to guide the AI |
-| `maxTokens` | integer | No | Maximum response length (tested up to 100k) |
+| `maxTokens` | integer | No | **Ignored — output is capped at 1000 tokens regardless.** Use `chat` for longer outputs. |
 | `temperature` | number | No | Creativity (0-1, default ~0.7) |
 
 **Response:**
@@ -82,7 +84,7 @@ Multi-turn conversation. Use this when you need to pass feedback history — eac
 | `messages[].content` | string | Yes | The turn content |
 | `model` | string | No | Model to use (default: `gpt-4o-mini`); see [capability matrix](../AI-HOOK-CAPABILITY-MATRIX.md) |
 | `systemPrompt` | string | No | System instructions prepended to the conversation |
-| `maxTokens` | integer | No | Maximum response length (default 1200; tested up to 100k) |
+| `maxTokens` | integer | No | Maximum response length (default 1200; honored by `chat`; verified up to 8000+ tokens returned) |
 | `temperature` | number | No | Creativity (0–1, default 0.7) |
 
 **Response:** Same shape as `generate`.
@@ -102,8 +104,9 @@ Multi-turn conversation. Use this when you need to pass feedback history — eac
 
 **When to use `chat` vs `generate`:**
 
-- Use `generate` for one-shot generation with no prior context.
-- Use `chat` any time the user has already seen and reacted to a prior output. Packing conversation history into a single `prompt` string degrades instruction-following — the model treats simulated history as background text rather than conversation turns, so late-arriving instructions like "make it shorter" lose priority against earlier system prompt rules.
+- Use `generate` only for short one-shot outputs (captions, subject lines, labels) where you are confident the response will be under 1000 tokens. The `generate` action has a hardcoded 1000-token output cap that cannot be overridden with `maxTokens`.
+- Use `chat` for any output that may exceed 1000 tokens — arc generation, show notes, research synthesis, multi-section structured content. Pass the full prompt as a single user message if you don't need conversation history. `chat` honors `maxTokens` and has no observed cap.
+- Use `chat` any time the user has already seen and reacted to a prior output. Packing conversation history into a single `prompt` string degrades instruction-following — the model treats simulated history as background text rather than conversation turns.
 
 ---
 
@@ -115,7 +118,7 @@ Multi-turn conversation. Use this when you need to pass feedback history — eac
 | `prompt` | Required | Not used |
 | `messages` | Not used | Required |
 | `systemPrompt` | Optional | Optional |
-| `maxTokens` | Optional (default 1200) | Optional (default 1200) |
+| `maxTokens` | Optional (**ignored — capped at 1000**) | Optional (default 1200; honored) |
 | `temperature` | Optional (default 0.7) | Optional (default 0.7) |
 
 ---
@@ -219,11 +222,12 @@ console.log(r2.text); // Two-sentence caption
 
 ## Limitations & Known Issues
 
+- **OpenAI proxy only:** The hook only works with OpenAI model IDs. Non-OpenAI names (Claude, Gemini, DeepSeek, etc.) are accepted without error but silently fail via `generate`. Use `chat` to see the actual 404 error. See the [Capability Matrix](../AI-HOOK-CAPABILITY-MATRIX.md) for the full list of working and broken models.
+- **`generate` is capped at 1000 tokens:** The `maxTokens` field is ignored for `generate`. Use `chat` for any structured output that may be longer.
 - **Vision / Images:** Not supported via this hook. Models accept but ignore image fields.
 - **Tool Calling:** Hook accepts `tools` field but doesn't forward it; models respond in natural language.
 - **Streaming:** Not supported; responses are always full-text in the `text` field.
-- **Claude Sonnet 4.6 / Haiku returns empty text:** Likely insufficient usage tier; use `claude-sonnet-4-5` or `gpt-4o` instead.
-- **Default model is gpt-4o-mini:** Lower quality for complex tasks; specify `model: "gpt-4o"` for better results.
+- **Default model is gpt-4o-mini:** Specify `model` explicitly. Use `gpt-4.1` or `gpt-4o` for complex structured generation.
 
 For the complete capability matrix, latency analysis, and error handling guide, see [AI Hook Capability Matrix](../AI-HOOK-CAPABILITY-MATRIX.md).
 
