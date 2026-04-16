@@ -28,7 +28,8 @@ Do not load all docs upfront. Read the specific file for the task at hand.
 | Build a composite/aggregate API | `/Users/kanekoa/Workspace/audos-platform/docs/platform/05-composite-apis.md` |
 | Call any Throughline API endpoint | `/Users/kanekoa/Workspace/audos-platform/docs/throughline/throughline-api-reference.md` |
 | Work with the database or tables | `/Users/kanekoa/Workspace/audos-platform/docs/throughline/database-api.md` |
-| Generate AI content | `/Users/kanekoa/Workspace/audos-platform/docs/throughline/ai-generation-api.md` |
+| Generate AI content (quick reference) | `/Users/kanekoa/Workspace/audos-platform/docs/throughline/ai-generation-api.md` |
+| **AI hook capability matrix** (models, latency, vision/tools/JSON mode) | `/Users/kanekoa/Workspace/audos-platform/docs/AI-HOOK-CAPABILITY-MATRIX.md` |
 | Send email | `/Users/kanekoa/Workspace/audos-platform/docs/throughline/email-api.md` |
 | Manage contacts / CRM | `/Users/kanekoa/Workspace/audos-platform/docs/throughline/crm-api.md` |
 | Read analytics | `/Users/kanekoa/Workspace/audos-platform/docs/throughline/analytics-api.md` |

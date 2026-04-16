@@ -6,7 +6,9 @@
 >
 > **Content-Type:** `application/json`
 
-Generate text content using GPT-4o-mini.
+Generate text content using 15+ language models from OpenAI, Anthropic, Google, and other providers.
+
+**For a complete capability map, latency analysis, and known limitations, see [AI Hook Capability Matrix](../AI-HOOK-CAPABILITY-MATRIX.md).**
 
 ---
 
@@ -31,8 +33,9 @@ Generate text from a prompt.
 |-------|------|----------|-------------|
 | `action` | string | Yes | Always `"generate"` |
 | `prompt` | string | Yes | The user prompt / what you want generated |
+| `model` | string | No | Model to use (default: `gpt-4o-mini`); see [capability matrix](../AI-HOOK-CAPABILITY-MATRIX.md) for full list |
 | `systemPrompt` | string | No | System instructions to guide the AI |
-| `maxTokens` | integer | No | Maximum response length |
+| `maxTokens` | integer | No | Maximum response length (tested up to 100k) |
 | `temperature` | number | No | Creativity (0-1, default ~0.7) |
 
 **Response:**
@@ -77,8 +80,9 @@ Multi-turn conversation. Use this when you need to pass feedback history — eac
 | `messages` | array | Yes | Alternating `user`/`assistant` turns. Last message must be `role: "user"`. |
 | `messages[].role` | string | Yes | `"user"` or `"assistant"` |
 | `messages[].content` | string | Yes | The turn content |
+| `model` | string | No | Model to use (default: `gpt-4o-mini`); see [capability matrix](../AI-HOOK-CAPABILITY-MATRIX.md) |
 | `systemPrompt` | string | No | System instructions prepended to the conversation |
-| `maxTokens` | integer | No | Maximum response length (default 1200) |
+| `maxTokens` | integer | No | Maximum response length (default 1200; tested up to 100k) |
 | `temperature` | number | No | Creativity (0–1, default 0.7) |
 
 **Response:** Same shape as `generate`.
@@ -210,6 +214,18 @@ console.log(r2.text); // Two-sentence caption
 4. **Generate episode titles and descriptions**
 5. **Create newsletter content**
 6. **Iterative refinement loops** — use `chat` when building training flows where users give feedback across multiple rounds. Each round's output becomes an `assistant` turn; the user's feedback becomes the next `user` turn. The model weights the final user message highest, so instructions like "make it two sentences" reliably override earlier defaults.
+
+---
+
+## Limitations & Known Issues
+
+- **Vision / Images:** Not supported via this hook. Models accept but ignore image fields.
+- **Tool Calling:** Hook accepts `tools` field but doesn't forward it; models respond in natural language.
+- **Streaming:** Not supported; responses are always full-text in the `text` field.
+- **Claude Sonnet 4.6 / Haiku returns empty text:** Likely insufficient usage tier; use `claude-sonnet-4-5` or `gpt-4o` instead.
+- **Default model is gpt-4o-mini:** Lower quality for complex tasks; specify `model: "gpt-4o"` for better results.
+
+For the complete capability matrix, latency analysis, and error handling guide, see [AI Hook Capability Matrix](../AI-HOOK-CAPABILITY-MATRIX.md).
 
 ---
 
