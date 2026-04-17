@@ -23,6 +23,10 @@ export interface QueryOptions {
 }
 
 export function createClient(config: AudosClientConfig) {
+  if (typeof window !== 'undefined') {
+    throw new Error('[audos-sdk] server-side only — do not use in browser contexts');
+  }
+
   async function callHook(hookName: string, body: unknown): Promise<any> {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (hookName === 'db-api') headers['x-api-key'] = config.apiKey;
