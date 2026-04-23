@@ -13,9 +13,10 @@ This document covers everything you need to successfully deploy a React app via 
 3. [Routing on Audos](#routing-on-audos)
 4. [Platform Detection](#platform-detection)
 5. [File Scope — What Audos Compiles](#file-scope--what-audos-compiles)
-6. [External API Calls — Guarding Against Unavailable Services](#external-api-calls--guarding-against-unavailable-services)
-7. [Debugging Sync Issues](#debugging-sync-issues)
-8. [Deployment Checklist](#deployment-checklist)
+6. [Local Daemon Connectivity from the Audos Platform](#local-daemon-connectivity-from-the-audos-platform)
+7. [Identity and Auth on the Platform](#identity-and-auth-on-the-platform)
+8. [Debugging Sync Issues](#debugging-sync-issues)
+9. [Deployment Checklist](#deployment-checklist)
 
 ---
 
@@ -354,34 +355,137 @@ Even though `App.tsx` does not import `routes.tsx`, Audos compiles `routes.tsx` 
 
 ---
 
-## External API Calls — Guarding Against Unavailable Services
+## Local Daemon Connectivity from the Audos Platform
 
-When your app calls external services (a local daemon, a development proxy, etc.), those services are not available when the app runs on the Audos platform. An uncaught rejection at startup will crash the app.
+Apps that rely on a local daemon (e.g. a Go HTTP service at `localhost:8106`) can connect to it even when loaded from an HTTPS Audos URL. This works because **modern browsers exempt `localhost` from mixed-content blocking** — an HTTPS page is allowed to make requests to `http://localhost`.
 
-**Pattern:** Gate initialization calls with `isOnPlatform()`.
+There are two requirements: the daemon must send CORS headers, and the app must know to call `localhost` instead of the Audos-proxied path.
+
+### Step 1 — Add CORS to the daemon
+
+The daemon must respond to preflight `OPTIONS` requests and include `Access-Control-Allow-Origin` for the Audos domain. Without this, the browser blocks the request before it reaches the daemon.
+
+**Go example (stdlib `net/http`):**
+
+```go
+var allowedOrigins = map[string]bool{
+    "http://localhost:5173":          true, // Vite dev server
+    "http://localhost:4173":          true, // Vite preview
+    "https://app.yourdomain.com":     true, // Audos platform URL
+}
+
+func corsMiddleware(next http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        origin := r.Header.Get("Origin")
+        if allowedOrigins[origin] {
+            w.Header().Set("Access-Control-Allow-Origin", origin)
+            w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
+            w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-User-ID, X-Org-ID")
+            w.Header().Set("Vary", "Origin")
+        }
+        if r.Method == http.MethodOptions {
+            w.WriteHeader(http.StatusNoContent)
+            return
+        }
+        next.ServeHTTP(w, r)
+    })
+}
+
+// Wrap the mux:
+http.ListenAndServe(addr, corsMiddleware(mux))
+```
+
+Verify CORS is working:
+```bash
+curl -I -X OPTIONS http://localhost:8106/some-endpoint \
+  -H "Origin: https://app.yourdomain.com" \
+  -H "Access-Control-Request-Method: GET"
+# Should return: Access-Control-Allow-Origin: https://app.yourdomain.com
+```
+
+### Step 2 — Override the daemon base URL in `App.tsx`
+
+In local Vite dev, a proxy rewrites `/daemon` → `http://localhost:8106`. On the Audos platform there is no proxy — requests to `/daemon` hit the Audos server and return an HTML 404, causing JSON parse errors.
+
+Set `window.__daemonBase` at module scope in `App.tsx` (before any components render):
 
 ```tsx
-// In your app's initialization or useEffect
+// App.tsx
+// When running on the Audos platform, there's no /daemon proxy.
+// Point directly at the local daemon — browsers allow HTTPS→localhost requests.
+if ((globalThis as any).__WORKSPACE_ID__) {
+  (globalThis as any).__daemonBase = 'http://localhost:8106';
+}
+
+export default function App() { ... }
+```
+
+### Step 3 — Read the base URL lazily in the API client
+
+`window.__daemonBase` is set by `App.tsx` at module evaluation time, but the API client module may have loaded first. If the base URL is read as a `const` at module load time, the override is missed.
+
+**Wrong — evaluated once at module load, before App.tsx runs:**
+```ts
+const DAEMON_BASE = (globalThis as any).__daemonBase ?? '/daemon';
+```
+
+**Correct — read at each request, picks up the App.tsx override:**
+```ts
+function getDaemonBase(): string {
+  return (globalThis as any).__daemonBase ?? '/daemon';
+}
+
+async function request(method, path, body) {
+  const res = await fetch(`${getDaemonBase()}${path}`, { ... });
+  ...
+}
+```
+
+---
+
+## Identity and Auth on the Platform
+
+Apps that use an identity/auth system (user ID, org ID) must not bypass their auth flow when `isOnPlatform()` is true. The Audos platform does not inject user identity into your app — you must establish it yourself.
+
+### The wrong pattern
+
+```tsx
+// WRONG — authed is always true on platform, identity is never set
+const [authed, setAuthed] = useState(() => isOnPlatform() || !!getIdentity());
+
 useEffect(() => {
-  if (isOnPlatform()) {
-    // Platform-specific init: use Audos hooks, not the daemon
-    initPlatformMode();
-  } else {
-    // Local dev: connect to local daemon
-    initLocalMode();
-  }
-}, []);
+  // WRONG — skips the daemon connection check, no org ID is ever established
+  if (isOnPlatform()) { setOnboardingChecked(true); return; }
+  ...
+}, [authed, onboardingChecked]);
 ```
 
-**For API base URLs**, resolve once at startup:
+If no identity (org ID, user ID) is stored and the daemon requires these headers, every request returns `401`. The page renders empty.
+
+### The correct pattern
+
+Run the same auth flow on platform as you do locally. Identity is stored in `localStorage` and persists across sessions.
 
 ```tsx
-const API_BASE = isOnPlatform()
-  ? 'https://audos.com/api/hooks/execute/workspace-351699'
-  : 'http://localhost:8106';
+// CORRECT — requires a real stored identity on both local and platform
+const [authed, setAuthed] = useState(() => !!getIdentity());
+
+useEffect(() => {
+  if (!authed) setAuthed(!!getIdentity());
+}, [authed]);
+
+useEffect(() => {
+  if (!authed || onboardingChecked) return;
+  // Same check on both local and platform: does the daemon have config?
+  podcastConfigApi.get()
+    .then(() => setOnboardingChecked(true))
+    .catch(() => { setShowOnboarding(true); setOnboardingChecked(true); });
+}, [authed, onboardingChecked]);
 ```
 
-**Do not** make calls to `localhost` from production. These will fail silently or with CORS errors, depending on browser security policy.
+**First-time platform use:** The DevGate collects the user's email. The onboarding flow derives the `orgId` from the podcast/show name and stores `{ userId, orgId }` in `localStorage` before making any daemon calls. Subsequent visits use the cached identity.
+
+**The `isOnPlatform()` function is for routing API base URLs and gating platform-specific features, not for bypassing auth or connection checks.**
 
 ---
 
@@ -433,6 +537,8 @@ If the app mounts and immediately crashes with a React error, open DevTools > Ne
 | Blank page, no JS errors | Compile error | Check browser console for ESBuild errors |
 | Changes to one file not reflected | Bundler scope — another file may be caching | Try clearing browser cache; check if old file content is in CDN |
 | App works locally, blank on platform | Platform detection or daemon dependency | Check `isOnPlatform()` guards; check for uncaught localhost calls |
+| All API calls return 401 on platform | Identity not established — `isOnPlatform()` bypassed auth | Remove `isOnPlatform()` from `authed` initial state; run DevGate + onboarding on platform too |
+| JSON parse error ("Unexpected token '<'") on platform | API client hitting Audos server instead of local daemon | Set `window.__daemonBase` in App.tsx; read it lazily in API client |
 
 ---
 
@@ -457,8 +563,13 @@ Routing
 
 Platform Detection
   [ ] isOnPlatform() uses window.__WORKSPACE_ID__ (not __spaceContext)
-  [ ] Daemon/localhost calls are guarded with !isOnPlatform()
+  [ ] isOnPlatform() is NOT used to bypass auth, identity, or connection checks
   [ ] API base URL resolves correctly for both platform and local
+
+Local Daemon (if app uses one)
+  [ ] Daemon has CORS middleware allowing the Audos platform origin
+  [ ] App.tsx sets window.__daemonBase = 'http://localhost:PORT' when isOnPlatform()
+  [ ] API client reads __daemonBase lazily (function, not const) so App.tsx override is picked up
 
 File Scope
   [ ] No files in apps/{appName}/ that import broken or missing libraries
