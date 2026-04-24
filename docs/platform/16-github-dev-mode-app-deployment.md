@@ -172,47 +172,129 @@ Compare the entries against what you expect. Look specifically for any package t
 
 URL-based routers (React Router DOM, TanStack Router, etc.) fail on Audos for two compounding reasons:
 
-1. **Dual-React trap** — They have React as a peer dependency and will pull a second React version (see above)
-2. **URL control** — Audos controls the URL. The platform may intercept history API calls in ways that conflict with a library router's expectations. Deep-link URLs (e.g. `/episodes/123`) may not resolve to your app
+1. **Dual-React trap** — They have React as a peer dependency and will pull a second React version (see the `cdnDependencies` section above). This causes React error #31 and a blank screen.
+2. **URL control** — Audos controls the URL. Path-based deep links (`/episodes/123`) don't survive refresh — `Desktop.tsx` ignores the pathname and defaults to the first app in config.
 
-Do not use URL-based router libraries on Audos. Use a state-based router instead.
+Do not use URL-based router libraries on Audos.
 
-### The State-Based Router Pattern
+### Platform Routing Model
 
-A state-based router keeps the current route in React state. Navigation is a function call, not a URL change. There is no history API, no browser back/forward (unless you add it), and no external library.
+`Desktop.tsx` uses the URL hash to identify which app to load. It does an **exact match** on the full hash:
 
-**Full implementation — `lib/router.tsx`:**
+```
+app.trythroughline.com/#throughline   → loads the "throughline" app ✅
+app.trythroughline.com/#throughline/episodes → no match → falls through ❌
+```
+
+This means hash sub-paths (e.g. `#throughline/episodes/rs_abc123`) **do not work** until the platform changes `Desktop.tsx` to do a prefix match instead of an exact match. This has been reported as a platform gap and a fix has been proposed (split hash on `/`, use first segment only). Once that lands, the ideal URL scheme is:
+
+```
+app.trythroughline.com/#throughline/episodes/rs_abc123/research
+app.trythroughline.com/#throughline/guests/gs_abc123
+```
+
+Until then, use query-param routing (below).
+
+### Query-Param Routing (Current Workaround)
+
+The platform only reads `window.location.hash` — it never touches `window.location.search`. Query params survive platform navigation, are preserved on refresh, and don't interfere with the app loader. This makes them a reliable workaround for deep links until hash sub-path routing is supported.
+
+URL scheme:
+```
+app.trythroughline.com/?e=rs_abc123&tab=research#throughline   ← episode detail
+app.trythroughline.com/?g=gs_abc123#throughline                ← guest profile
+app.trythroughline.com/?p=episodes#throughline                 ← episodes list
+app.trythroughline.com/#throughline                            ← home
+```
+
+**Full router implementation with query-param sync and back/forward support:**
 
 ```tsx
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 
-// Define all pages as a discriminated union.
-// Add new pages here as your app grows.
 export type Route =
   | { page: 'home' }
   | { page: 'episodes' }
-  | { page: 'episode-detail'; episodeId: string; tab?: 'research' | 'story' | 'interview' | 'studio' }
-  | { page: 'settings' }
-  | { page: 'onboarding' };
+  | { page: 'new-episode' }
+  | { page: 'episode-detail'; episodeId: string; tab?: 'research' | 'story' | 'interview' | 'studio'; reelId?: string }
+  | { page: 'guests' }
+  | { page: 'guest-profile'; publicId: string }
+  | { page: 'activity' }
+  | { page: 'voiceprint' }
+  | { page: 'voiceprint-detail'; voiceprintId: string }
+  | { page: 'show' };
 
-type RouterCtx = {
-  route: Route;
-  navigate: (route: Route) => void;
-};
+function routeToParams(route: Route): URLSearchParams {
+  const p = new URLSearchParams();
+  switch (route.page) {
+    case 'episodes':    p.set('p', 'episodes'); break;
+    case 'new-episode': p.set('p', 'new-episode'); break;
+    case 'episode-detail':
+      p.set('e', route.episodeId);
+      if (route.tab)    p.set('tab', route.tab);
+      if (route.reelId) p.set('reel', route.reelId);
+      break;
+    case 'guests':      p.set('p', 'guests'); break;
+    case 'guest-profile': p.set('g', route.publicId); break;
+    case 'activity':    p.set('p', 'activity'); break;
+    case 'voiceprint':  p.set('p', 'voiceprint'); break;
+    case 'voiceprint-detail': p.set('vp', route.voiceprintId); break;
+    case 'show':        p.set('p', 'show'); break;
+    // 'home' — no params
+  }
+  return p;
+}
 
-const RouterContext = createContext<RouterCtx>({
-  route: { page: 'home' },
-  navigate: () => {},
-});
+function paramsToRoute(search: string): Route {
+  const p  = new URLSearchParams(search);
+  const e  = p.get('e');
+  const g  = p.get('g');
+  const vp = p.get('vp');
+  const pg = p.get('p');
 
-export const useRouter = () => useContext(RouterContext);
-export const useNavigate = () => useContext(RouterContext).navigate;
-export const useRoute = () => useContext(RouterContext).route;
+  if (e)  return { page: 'episode-detail', episodeId: e, tab: (p.get('tab') as 'research' | 'story' | 'interview' | 'studio') ?? 'research', reelId: p.get('reel') ?? undefined };
+  if (g)  return { page: 'guest-profile', publicId: g };
+  if (vp) return { page: 'voiceprint-detail', voiceprintId: vp };
+
+  switch (pg) {
+    case 'episodes':    return { page: 'episodes' };
+    case 'new-episode': return { page: 'new-episode' };
+    case 'guests':      return { page: 'guests' };
+    case 'activity':    return { page: 'activity' };
+    case 'voiceprint':  return { page: 'voiceprint' };
+    case 'show':        return { page: 'show' };
+    default:            return { page: 'home' };
+  }
+}
+
+function pushRoute(route: Route) {
+  const params = routeToParams(route);
+  const search = params.toString() ? `?${params.toString()}` : '';
+  window.history.pushState(null, '', `${search}${window.location.hash}`);
+}
+
+type RouterCtx = { route: Route; navigate: (route: Route) => void };
+const RouterContext = createContext<RouterCtx>({ route: { page: 'home' }, navigate: () => {} });
+
+export function useRouter()   { return useContext(RouterContext); }
+export function useNavigate() { return useContext(RouterContext).navigate; }
 
 export function RouterProvider({ children }: { children: React.ReactNode }) {
-  const [route, setRoute] = useState<Route>({ page: 'home' });
+  const [route, setRoute] = useState<Route>(() => paramsToRoute(window.location.search));
+
+  const navigate = (next: Route) => {
+    setRoute(next);
+    pushRoute(next);
+  };
+
+  useEffect(() => {
+    const onPop = () => setRoute(paramsToRoute(window.location.search));
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
   return (
-    <RouterContext.Provider value={{ route, navigate: setRoute }}>
+    <RouterContext.Provider value={{ route, navigate }}>
       {children}
     </RouterContext.Provider>
   );
@@ -241,7 +323,6 @@ import { useNavigate } from './lib/router';
 
 function EpisodeCard({ episodeId }: { episodeId: string }) {
   const navigate = useNavigate();
-
   return (
     <button onClick={() => navigate({ page: 'episode-detail', episodeId })}>
       Open episode
@@ -250,46 +331,15 @@ function EpisodeCard({ episodeId }: { episodeId: string }) {
 }
 ```
 
-**Page switcher:**
+### Migration Path to Hash Sub-Paths
 
-```tsx
-import { useRoute } from './lib/router';
-import { HomePage } from './pages/HomePage';
-import { EpisodesPage } from './pages/EpisodesPage';
-import { EpisodeDetailPage } from './pages/EpisodeDetailPage';
+Once the platform fixes `Desktop.tsx` to prefix-match the hash, migrate to hash sub-paths by replacing `routeToParams`/`paramsToRoute`/`pushRoute` with hash serialization. The `Route` type, context, and `RouterProvider` structure stay identical — only the serialization layer changes. This is a one-file swap.
 
-export function PageContent() {
-  const route = useRoute();
-
-  switch (route.page) {
-    case 'home':       return <HomePage />;
-    case 'episodes':   return <EpisodesPage />;
-    case 'episode-detail': return <EpisodeDetailPage episodeId={route.episodeId} tab={route.tab} />;
-    case 'settings':   return <SettingsPage />;
-    default:           return <HomePage />;
-  }
-}
+Target URL scheme after migration:
 ```
-
-**Nav links (use buttons, not `<a>` or `<Link>`):**
-
-```tsx
-import { useNavigate, useRoute } from './lib/router';
-
-function NavItem({ target, label }: { target: Route; label: string }) {
-  const navigate = useNavigate();
-  const route = useRoute();
-  const isActive = route.page === target.page;
-
-  return (
-    <button
-      onClick={() => navigate(target)}
-      className={isActive ? 'nav-active' : 'nav-item'}
-    >
-      {label}
-    </button>
-  );
-}
+app.trythroughline.com/#throughline/episodes/rs_abc123/research
+app.trythroughline.com/#throughline/guests/gs_abc123
+app.trythroughline.com/#throughline/voiceprint/vp_abc123
 ```
 
 ---
