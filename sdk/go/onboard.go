@@ -12,14 +12,18 @@ const onboardBaseURL = "https://audos.com/api/agent/onboard"
 
 // OnboardClient calls the Audos onboarding/Otto chat API.
 //
-// Auth uses Bearer token (format: aud_live_ + 48 hex chars), not x-api-key.
 // The base path (/api/agent/onboard) is entirely separate from the workspace
 // hooks API used by Client.
 //
-// Known limitation: Tokens are workspace-scoped and only issued via the
-// Start/Verify flow. Workspaces provisioned directly through the Audos
-// platform (not through this API) will not have an email→token mapping
-// and will return AUTH_TOKEN_INVALID until linked by the Audos team.
+// Production note, 2026-07-08: existing-workspace access currently works
+// through body-auth endpoints:
+//   - POST /start with workspaceId + createNew=false
+//   - POST /status with { authToken }
+//   - POST /chat with { authToken, message, chatId? }
+//
+// Bearer-header routes are retained as explicit *ViaBearer methods for
+// compatibility checks, but they may return 401 until Audos publishes the
+// bearer-header fix.
 type OnboardClient struct {
 	authToken string
 	baseURL   string
@@ -68,10 +72,11 @@ type StartOption func(*startRequest)
 type startRequest struct {
 	Email          string `json:"email"`
 	BusinessIdea   string `json:"businessIdea"`
+	WorkspaceID    string `json:"workspaceId,omitempty"`
 	BusinessName   string `json:"businessName,omitempty"`
 	TargetCustomer string `json:"targetCustomer,omitempty"`
 	CallbackURL    string `json:"callbackUrl,omitempty"`
-	CreateNew      bool   `json:"createNew,omitempty"`
+	CreateNew      *bool  `json:"createNew,omitempty"`
 }
 
 // WithBusinessName sets the optional business name on a Start call.
@@ -89,9 +94,26 @@ func WithCallbackURL(url string) StartOption {
 	return func(r *startRequest) { r.CallbackURL = url }
 }
 
-// WithCreateNew forces creation of a new workspace even if one exists for the email.
-func WithCreateNew() StartOption {
-	return func(r *startRequest) { r.CreateNew = true }
+// WithWorkspaceID targets an existing workspace and defaults createNew to false.
+func WithWorkspaceID(workspaceID string) StartOption {
+	return func(r *startRequest) {
+		r.WorkspaceID = workspaceID
+		createNew := false
+		r.CreateNew = &createNew
+	}
+}
+
+// WithCreateNew controls whether /start should create a new workspace.
+// Calling WithCreateNew() preserves the legacy behavior of forcing creation.
+// Calling WithCreateNew(false) is useful when targeting an existing workspace.
+func WithCreateNew(value ...bool) StartOption {
+	return func(r *startRequest) {
+		createNew := true
+		if len(value) > 0 {
+			createNew = value[0]
+		}
+		r.CreateNew = &createNew
+	}
 }
 
 // StartResponse covers both outcomes of /start:
@@ -99,13 +121,38 @@ func WithCreateNew() StartOption {
 //   - Returning user: AuthToken + workspace fields are set; SessionToken is empty.
 type StartResponse struct {
 	// Returning user fields
-	AuthToken     string        `json:"auth_token,omitempty"`
-	WorkspaceID   string        `json:"workspaceId,omitempty"`
-	WorkspaceName string        `json:"workspaceName,omitempty"`
-	URLs          WorkspaceURLs `json:"urls,omitempty"`
+	AuthTokenCamel    string            `json:"authToken,omitempty"`
+	AuthToken         string            `json:"auth_token,omitempty"`
+	WorkspaceID       string            `json:"workspaceId,omitempty"`
+	WorkspaceName     string            `json:"workspaceName,omitempty"`
+	URLs              WorkspaceURLs     `json:"urls,omitempty"`
+	ExistingWorkspace ExistingWorkspace `json:"existingWorkspace,omitempty"`
 
 	// New user field — present only when OTP email was sent
 	SessionToken string `json:"sessionToken,omitempty"`
+}
+
+type ExistingWorkspace struct {
+	AuthTokenCamel string        `json:"authToken,omitempty"`
+	AuthToken      string        `json:"auth_token,omitempty"`
+	WorkspaceID    string        `json:"workspaceId,omitempty"`
+	WorkspaceName  string        `json:"workspaceName,omitempty"`
+	URLs           WorkspaceURLs `json:"urls,omitempty"`
+}
+
+// Token returns the auth token from either the current or historical /start
+// response shape. Do not log or persist this value outside a secret store.
+func (r StartResponse) Token() string {
+	if r.AuthTokenCamel != "" {
+		return r.AuthTokenCamel
+	}
+	if r.AuthToken != "" {
+		return r.AuthToken
+	}
+	if r.ExistingWorkspace.AuthTokenCamel != "" {
+		return r.ExistingWorkspace.AuthTokenCamel
+	}
+	return r.ExistingWorkspace.AuthToken
 }
 
 // VerifyResponse is returned by /verify after OTP confirmation.
@@ -119,19 +166,43 @@ type VerifyResponse struct {
 
 // StatusResponse is returned by GET /status/:workspaceId.
 type StatusResponse struct {
-	WorkspaceID           string   `json:"workspaceId"`
-	Status                string   `json:"status"`
-	Progress              int      `json:"progress"`
-	LandingPageReady      bool     `json:"landingPageReady"`
-	EstimatedTimeRemaining string  `json:"estimatedTimeRemaining,omitempty"`
-	CompletedSteps        []string `json:"completedSteps,omitempty"`
+	WorkspaceID            string   `json:"workspaceId"`
+	Status                 string   `json:"status"`
+	Progress               int      `json:"progress"`
+	LandingPageReady       bool     `json:"landingPageReady"`
+	EstimatedTimeRemaining string   `json:"estimatedTimeRemaining,omitempty"`
+	CompletedSteps         []string `json:"completedSteps,omitempty"`
 }
 
 // ChatResponse is returned by POST /chat/:workspaceId.
 type ChatResponse struct {
 	WorkspaceID string `json:"workspaceId"`
-	ChatID      string `json:"chatId"`
-	Response    string `json:"response"` // Otto's reply text
+	// ChatID is the server-side Otto conversation identifier.
+	//
+	// Observed 2026-07-08: repeated body-auth /chat calls for the same
+	// workspace token returned the same chatId and preserved short-term
+	// conversation context. Passing the returned chatId back also returned the
+	// same chatId. Creating/selecting arbitrary chat IDs is not confirmed, so
+	// callers should reuse only chat IDs returned by Audos.
+	ChatID   string `json:"chatId"`
+	Response string `json:"response"` // Otto's reply text
+}
+
+// ChatOption allows optional chat fields to be passed to Chat and
+// ChatViaBearer.
+type ChatOption func(*chatRequest)
+
+type chatRequest struct {
+	AuthToken string `json:"authToken,omitempty"`
+	Message   string `json:"message"`
+	ChatID    string `json:"chatId,omitempty"`
+}
+
+// WithChatID continues a chat using an ID returned by a previous ChatResponse.
+// Do not invent IDs, and do not rely on an empty string to create a new topic
+// thread until Audos documents that behavior.
+func WithChatID(chatID string) ChatOption {
+	return func(r *chatRequest) { r.ChatID = chatID }
 }
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────
@@ -219,10 +290,16 @@ func (c *OnboardClient) Verify(sessionToken, otpCode string) (VerifyResponse, er
 	return out, c.do(httpReq, &out)
 }
 
-// Status returns the current build status for the given workspace.
-// Requires an auth token — call SetAuthToken or use NewOnboardClient.
+// Status returns the current build status for the current auth token.
+// workspaceID is kept for source compatibility with the earlier bearer route.
+// The working production route authenticates from the body token.
 func (c *OnboardClient) Status(workspaceID string) (StatusResponse, error) {
-	httpReq, err := c.newRequest(http.MethodGet, "/status/"+workspaceID, nil)
+	if c.authToken == "" {
+		return StatusResponse{}, fmt.Errorf("auth token required: call Start with WithWorkspaceID or Verify, then SetAuthToken")
+	}
+	httpReq, err := c.newRequest(http.MethodPost, "/status", map[string]string{
+		"authToken": c.authToken,
+	})
 	if err != nil {
 		return StatusResponse{}, err
 	}
@@ -232,11 +309,53 @@ func (c *OnboardClient) Status(workspaceID string) (StatusResponse, error) {
 }
 
 // Chat sends a message to Otto (the Audos AI assistant) for the given workspace.
-// Requires an auth token — call SetAuthToken or use NewOnboardClient.
-func (c *OnboardClient) Chat(workspaceID, message string) (ChatResponse, error) {
-	httpReq, err := c.newRequest(http.MethodPost, "/chat/"+workspaceID, map[string]string{
-		"message": message,
-	})
+// workspaceID is kept for source compatibility with the earlier bearer route.
+// The working production route authenticates from the body token.
+func (c *OnboardClient) Chat(workspaceID, message string, opts ...ChatOption) (ChatResponse, error) {
+	if c.authToken == "" {
+		return ChatResponse{}, fmt.Errorf("auth token required: call Start with WithWorkspaceID or Verify, then SetAuthToken")
+	}
+	body := &chatRequest{AuthToken: c.authToken, Message: message}
+	for _, o := range opts {
+		o(body)
+	}
+	httpReq, err := c.newRequest(http.MethodPost, "/chat", body)
+	if err != nil {
+		return ChatResponse{}, err
+	}
+
+	var out ChatResponse
+	if err := c.do(httpReq, &out); err != nil {
+		return ChatResponse{}, err
+	}
+	if out.WorkspaceID != "" && out.WorkspaceID != workspaceID {
+		return ChatResponse{}, fmt.Errorf("response workspace mismatch: expected %s, got %s", workspaceID, out.WorkspaceID)
+	}
+	return out, nil
+}
+
+// StatusViaBearer calls the documented bearer-header status route. Kept for
+// Audos QA and backwards compatibility; prefer Status until bearer auth is
+// confirmed in production.
+func (c *OnboardClient) StatusViaBearer(workspaceID string) (StatusResponse, error) {
+	httpReq, err := c.newRequest(http.MethodGet, "/status/"+workspaceID, nil)
+	if err != nil {
+		return StatusResponse{}, err
+	}
+
+	var out StatusResponse
+	return out, c.do(httpReq, &out)
+}
+
+// ChatViaBearer calls the documented bearer-header chat route. Kept for Audos
+// QA and backwards compatibility; prefer Chat until bearer auth is confirmed in
+// production.
+func (c *OnboardClient) ChatViaBearer(workspaceID, message string, opts ...ChatOption) (ChatResponse, error) {
+	body := &chatRequest{Message: message}
+	for _, o := range opts {
+		o(body)
+	}
+	httpReq, err := c.newRequest(http.MethodPost, "/chat/"+workspaceID, body)
 	if err != nil {
 		return ChatResponse{}, err
 	}

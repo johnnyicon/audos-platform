@@ -1,13 +1,18 @@
 /**
  * Audos Onboarding / Otto Chat API client.
  *
- * Uses Bearer token auth and the /api/agent/onboard base path — entirely
- * separate from the workspace hooks API in createClient().
+ * Uses the /api/agent/onboard base path — entirely separate from the
+ * workspace hooks API in createClient().
  *
- * Known limitation: Tokens are workspace-scoped and only issued via the
- * Start/Verify flow. Workspaces provisioned directly through the Audos
- * platform (not through this API) will not have an email→token mapping
- * and will return AUTH_TOKEN_INVALID until linked by the Audos team.
+ * Production note, 2026-07-08: existing-workspace access currently works
+ * through body-auth endpoints:
+ *   - POST /start with workspaceId + createNew=false
+ *   - POST /status with { authToken }
+ *   - POST /chat with { authToken, message, chatId? }
+ *
+ * Bearer-header routes are retained as explicit *ViaBearer methods for
+ * compatibility checks, but they may return 401 until Audos publishes the
+ * bearer-header fix.
  */
 
 const ONBOARD_BASE_URL = 'https://audos.com/api/agent/onboard';
@@ -28,11 +33,21 @@ export interface WorkspaceURLs {
 export interface StartResponse {
   // Returning user fields
   auth_token?: string;
+  authToken?: string;
   workspaceId?: string;
   workspaceName?: string;
   urls?: WorkspaceURLs;
+  existingWorkspace?: ExistingWorkspace;
   // New user field — present only when OTP email was sent
   sessionToken?: string;
+}
+
+export interface ExistingWorkspace {
+  authToken?: string;
+  auth_token?: string;
+  workspaceId?: string;
+  workspaceName?: string;
+  urls?: WorkspaceURLs;
 }
 
 export interface VerifyResponse {
@@ -54,12 +69,33 @@ export interface StatusResponse {
 
 export interface ChatResponse {
   workspaceId: string;
+  /**
+   * Server-side Otto conversation identifier.
+   *
+   * Observed 2026-07-08: repeated body-auth /chat calls for the same
+   * workspace token returned the same chatId and preserved short-term
+   * conversation context. Passing the returned chatId back also returned the
+   * same chatId. Creating/selecting arbitrary chat IDs is not confirmed, so
+   * callers should reuse only chat IDs returned by Audos.
+   */
   chatId: string;
   /** Otto's reply text */
   response: string;
 }
 
+export interface ChatOptions {
+  /**
+   * Optional continuation hint from a previous ChatResponse.
+   *
+   * Use only values returned by Audos. Do not invent UUIDs, and do not rely on
+   * an empty string to create a new topic thread until Audos documents that
+   * behavior.
+   */
+  chatId?: string;
+}
+
 export interface StartOptions {
+  workspaceId?: string;
   businessName?: string;
   targetCustomer?: string;
   callbackUrl?: string;
@@ -86,7 +122,12 @@ export interface StartOptions {
  *
  * @example — returning user
  * ```ts
- * const client = createOnboardClient(storedToken);
+ * const client = createOnboardClient();
+ * const start = await client.start('user@example.com', 'Existing workspace work', {
+ *   workspaceId,
+ *   createNew: false,
+ * });
+ * client.setAuthToken(client.getAuthTokenFromStart(start)!);
  * const reply = await client.chat(workspaceId, 'Update my landing page headline');
  * ```
  */
@@ -95,6 +136,24 @@ export function createOnboardClient(authToken?: string) {
 
   function setAuthToken(token: string): void {
     _token = token;
+  }
+
+  function getAuthTokenFromStart(result: StartResponse): string | undefined {
+    return (
+      result.authToken ||
+      result.auth_token ||
+      result.existingWorkspace?.authToken ||
+      result.existingWorkspace?.auth_token
+    );
+  }
+
+  function requireAuthToken(): string {
+    if (!_token) {
+      throw new Error(
+        '[audos-sdk] auth token required. Call start(..., { workspaceId, createNew: false }) or verify(), then setAuthToken().',
+      );
+    }
+    return _token;
   }
 
   function buildHeaders(withBody: boolean): Record<string, string> {
@@ -156,19 +215,64 @@ export function createOnboardClient(authToken?: string) {
   }
 
   /**
-   * Returns the current build status for the given workspace.
-   * Requires an auth token.
+   * Returns the current build status for the current auth token.
+   *
+   * `workspaceId` is kept for source compatibility with the earlier bearer
+   * route. The working production route authenticates from the body token.
    */
-  async function status(workspaceId: string): Promise<StatusResponse> {
-    return request<StatusResponse>('GET', `/status/${workspaceId}`);
+  async function status(_workspaceId?: string): Promise<StatusResponse> {
+    return request<StatusResponse>('POST', '/status', {
+      authToken: requireAuthToken(),
+    });
   }
 
   /**
    * Sends a message to Otto (Audos AI assistant) for the given workspace.
-   * Requires an auth token.
+   *
+   * `workspaceId` is kept for source compatibility with the earlier bearer
+   * route. The working production route authenticates from the body token.
    */
-  async function chat(workspaceId: string, message: string): Promise<ChatResponse> {
-    return request<ChatResponse>('POST', `/chat/${workspaceId}`, { message });
+  async function chat(
+    workspaceId: string,
+    message: string,
+    options: ChatOptions = {},
+  ): Promise<ChatResponse> {
+    const body: Record<string, string> = {
+      authToken: requireAuthToken(),
+      message,
+    };
+    if (options.chatId) body.chatId = options.chatId;
+    const response = await request<ChatResponse>('POST', '/chat', {
+      ...body,
+    });
+    if (response.workspaceId && response.workspaceId !== workspaceId) {
+      throw new Error(
+        `[audos-sdk] response workspace mismatch: expected ${workspaceId}, got ${response.workspaceId}`,
+      );
+    }
+    return response;
+  }
+
+  /**
+   * Calls the documented bearer-header status route. Kept for Audos QA and
+   * backwards compatibility; prefer `status()` until bearer auth is confirmed.
+   */
+  async function statusViaBearer(workspaceId: string): Promise<StatusResponse> {
+    return request<StatusResponse>('GET', `/status/${workspaceId}`);
+  }
+
+  /**
+   * Calls the documented bearer-header chat route. Kept for Audos QA and
+   * backwards compatibility; prefer `chat()` until bearer auth is confirmed.
+   */
+  async function chatViaBearer(
+    workspaceId: string,
+    message: string,
+    options: ChatOptions = {},
+  ): Promise<ChatResponse> {
+    const body: Record<string, string> = { message };
+    if (options.chatId) body.chatId = options.chatId;
+    return request<ChatResponse>('POST', `/chat/${workspaceId}`, body);
   }
 
   /**
@@ -179,7 +283,17 @@ export function createOnboardClient(authToken?: string) {
     await request<void>('POST', `/rebuild/${workspaceId}`);
   }
 
-  return { setAuthToken, start, verify, status, chat, rebuild };
+  return {
+    setAuthToken,
+    getAuthTokenFromStart,
+    start,
+    verify,
+    status,
+    chat,
+    statusViaBearer,
+    chatViaBearer,
+    rebuild,
+  };
 }
 
 export type OnboardClient = ReturnType<typeof createOnboardClient>;

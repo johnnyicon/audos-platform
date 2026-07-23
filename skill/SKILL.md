@@ -39,6 +39,15 @@ Do not load all docs upfront. Read the specific file for the task at hand.
 | Fetch or analyze web pages | `/Users/kanekoa/Workspace/audos-platform/docs/throughline/web-api.md` |
 | Check known platform bugs or open issues | `/Users/kanekoa/Workspace/audos-platform/BACKLOG.md` |
 | Check recent platform changes | `/Users/kanekoa/Workspace/audos-platform/docs/throughline/changelog/` |
+| **Add or edit a Audos SDK blog entry** (findings write-up, cohort-facing) | `/Users/kanekoa/Workspace/audos-platform/blog/HOW-TO-UPDATE.md` |
+| **Eliminate the chat shell / get a real full-screen single-app experience** | `/Users/kanekoa/Workspace/audos-platform/docs/platform/22-eliminating-the-chat-shell-playbook.md` |
+| **Dispatching any job to Otto/Cursor** (standard operating pattern — read this before writing your first job) | `/Users/kanekoa/Workspace/audos-platform/docs/platform/23-dispatch-then-poll-sop.md` |
+| **Deciding where to write up something you just learned** (log vs backlog vs doc vs blog) | `/Users/kanekoa/Workspace/audos-platform/docs/platform/24-where-new-findings-go.md` |
+| **A job is stuck/hung, or you need to escalate a real platform bug to a human** | `/Users/kanekoa/Workspace/audos-platform/docs/platform/25-escalation-and-support-paths.md` |
+| **Building anything private, invite-only, or with custom auth** (why EmailGate can't just be disabled, and what happened when we tried to replace it) | `/Users/kanekoa/Workspace/audos-platform/docs/platform/26-unified-space-signed-out-view-is-mandatory.md` |
+| **Redeploy the SDK blog, or set up Basic Auth on a Cloudflare Worker + Static Assets** (includes a real caching gotcha that silently defeated the auth check on first deploy) | `/Users/kanekoa/Workspace/audos-platform/docs/platform/27-blog-hosting-cloudflare-worker.md`, `blog/cf-worker/redeploy.sh` |
+| **See what's changed in the SDK's own guidance recently** (terse delta, not the full story) | `/Users/kanekoa/Workspace/audos-platform/CHANGELOG.md` |
+| **Do any of: log an activity, write a blog entry, archive the log, update the changelog, or run a full harvest pass** — these are real Claude Code skills, not just docs; invoke by name or let the trigger phrases fire. **They live in `doknow-kb/.claude/skills/`, not this repo** — the activity log itself is DoKnow-local by design (see `24-where-new-findings-go.md`), so the skills are scoped there too, and operate cross-repo into this one for the blog/changelog/docs steps | `~/doknow-kb/.claude/skills/audos-sdk-{log-activity,write-blog-entry,archive-activity-log,update-changelog,harvest}/SKILL.md` |
 
 ---
 

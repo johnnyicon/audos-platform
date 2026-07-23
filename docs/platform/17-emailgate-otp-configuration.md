@@ -2,6 +2,13 @@
 
 > **SDK-Level Documentation** for developers building on the Audos platform
 
+> **Read `26-unified-space-signed-out-view-is-mandatory.md` first if your app has its own custom
+> auth, or needs to be private/invite-only.** This doc covers the OTP config API and assumes
+> EmailGate is an optional layer you're choosing to harden. For unified-space workspaces, it is
+> the *mandatory, unconditional* signed-out view — no custom gate mounts until it completes, and
+> the email step fires CRM/ad-pixel side effects regardless of your app's actual purpose. Doc 26
+> covers the mechanism and what we learned trying to replace it.
+
 EmailGate is Audos's visitor identification layer. By default it accepts any email address with no verification — this is intentional for lead-capture use cases. For apps that store real user data, this default is a security gap. OTP (one-time passcode) email verification must be **explicitly enabled per workspace**.
 
 This document covers: what OTP is, why it's off by default, how to enable it, how to verify it works, and what the UX looks like.
