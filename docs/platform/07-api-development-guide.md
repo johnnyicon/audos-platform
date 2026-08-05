@@ -122,6 +122,11 @@ The easiest way is to ask the Audos AI assistant:
 
 The assistant will use the `manage_server_functions` tool to create it.
 
+> **Correction, 2026-08-05.** This works in a signed-in workspace session, but the Otto reachable
+> through the *external* onboarding API reports it has no `manage_server_functions` tool at all — so
+> "Method 2" below is not available to anything automating from outside. The only external route we
+> found is staging a Cursor delegation job. See `blog/bugs/0038`.
+
 ### Method 2: Using the Tool Directly
 
 If you're building tools or automating, use the `manage_server_functions` MCP tool:

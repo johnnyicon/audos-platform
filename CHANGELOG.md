@@ -1,14 +1,79 @@
 # Changelog — Audos SDK
 
 A dated, versioned record of what actually **changed in this SDK's own guidance** — corrected docs, new
-capability findings, new backlog items, new playbooks. Distinct from the other three records, on purpose:
+capability findings, new backlog items, new playbooks. **Not** blog hosting, domain moves, or the site's
+own build/UI — see `blog/HOSTING-CHANGELOG.md` for that; it isn't Audos-platform knowledge, so it doesn't
+belong here even though it's a real, dated change. Distinct from the other three records, on purpose:
 
 - **`ACTIVITY-LOG.md`** — raw, unharvested actions (what we just did), trimmed/archived once harvested.
 - **`blog/`** — narrative write-ups, for a human reading the story of how something was found.
 - **`CHANGELOG.md`** (this file) — the terse "what's different in the SDK now" summary, one entry per
   harvest pass, written for someone who wants to know what changed without reading the narrative.
+- **`blog/HOSTING-CHANGELOG.md`** — the same idea, scoped to the blog's own hosting/build/UI instead of
+  the SDK's guidance content.
 
 Newest first.
+
+---
+
+## 2026-08-05 — pgvector re-verified live, plus two findings about the platform's own tooling
+
+Before repeating the 16 July pgvector finding to Audos directly, re-checked it — a three-week-old claim
+stated confidently is worse than no claim. **It holds:** `pg_extension` returns exactly one row,
+`plpgsql`. `vector` is not installed. `CAPABILITY-MATRIX.md` updated with the re-verification date and
+`bugs/0015` annotated.
+
+Also corrected a proportion problem in `bugs/0015`'s original wording: it called this "the single biggest
+blocker for any retrieval-grounded generation pipeline," which `BACKLOG.md #13` later disproved by
+benchmarking the JSON-array fallback at real embedding size. It's a ceiling on headroom, not a blocker
+today. Overstating a real gap is its own kind of inaccuracy.
+
+Getting the answer took four routes and surfaced two new findings, both filed to `BACKLOG.md`:
+
+- **#40** — the Otto reachable over the *external* onboarding API has no `manage_server_functions` tool,
+  contradicting `docs/platform/07`, which documents it as the creation path "if you're building tools or
+  automating." Another instance of the tool-surface split in `docs/platform/29`. Doc 07 corrected in place.
+  New: `blog/bugs/0038`.
+- **#41** — the jobs list truncates a job's output **mid-JSON**, with no marker, and deleting a temporary
+  hook destroys the `get_hook_logs` fallback. Same shape as `#4`. New: `blog/bugs/0039`.
+
+Narrative: `blog/experiments/0033-pgvector-still-not-enabled-reverified.md` — worth reading for the
+meta-point, that answering "is this extension installed" required dispatching a background build job to a
+third-party agent runner.
+
+## 2026-07-23 (even later) — capability matrix expanded with 3 new areas, live-verified by asking Otto directly
+
+Asked Otto (via the onboarding API's `/chat`) what Audos capabilities the SDK hadn't captured yet, then
+independently verified every claim it made rather than recording the description as fact — new standing
+pattern for anything Otto self-reports. Free/no-side-effect tools were run for real; anything that would
+spend real ad money or reach a real person (launching a campaign, sending DMs) was deliberately left
+unrun; media generation (real cost, no human impact) was run with explicit approval.
+
+Two new capability-matrix categories (**Analytics & Reporting**, **Ads & Marketing**) and a **Media
+Generation** section added, each backed by a new architecture doc
+(`docs/platform/29-otto-tool-surface-vs-app-callable-hooks.md` — these are Otto-chat-orchestrated tools,
+not `platform.*` hooks an app can call) plus three index docs (`docs/platform/30`–`32`) and one focused
+reference file per real capability under a new `docs/platform/capabilities/{analytics,ads,media}/`
+folder — the same progressive-disclosure shape as `otto-pilot`'s own `references/`.
+
+Two new bugs filed to `BACKLOG.md` (#38, #39): `query_data_source(funnel-events)` returns a degenerate,
+all-blank result where `query_events` correctly reports real data for the same workspace/window; and
+`list_voiceover_voices` returns `undefined` IDs for ~82 of ~85 listed voices (only 3 hardcoded fallbacks
+are actually selectable). Also refined the existing AI-model-lock row: the `gpt-4o-mini` lock applies only
+to the in-app AI proxy, not to build agents (Cursor) or Audos Code, which use other models. Video and
+voiceover generation were independently verified by downloading the returned files and probing them
+(`ffprobe`) rather than trusting the URL — both real. Narrative: `blog/0019-asking-otto-what-else-audos-can-do.md`.
+
+## 2026-07-23 (later still) — new durable doc 28, and the onboarding skill restructured as a portable package: otto-pilot
+
+New doc: `docs/platform/28-otto-onboarding-api-auth-and-chatid.md`, consolidating `bugs/0029` and
+`feature-requests/0018` (Bearer-vs-body-auth, `chatId` correlation behavior) into one reference, since
+both are about the same onboarding API surface. The onboarding agent skill itself — corrected and
+extended from Audos's own original file — moved out of `docs/audos-api/` and into a proper, portable
+skill package: `sdk/skills/otto-pilot/` (`SKILL.md`, `original.md` for comparison, and a `references/`
+folder the skill's own progressive-disclosure table points to, self-contained rather than linking back
+into this repo). Renamed from a working title ("audos-onboarding") once it became clear the skill covers
+the whole lifecycle now, not just the first ten minutes.
 
 ---
 
@@ -27,48 +92,6 @@ unanswered question with no actual finding behind it. Checked two items against 
 careful to distinguish its finding (a *different* global, used for a *different* purpose) from `0002`'s
 `__spaceContext?.username` claim, which still stands. Fixed a stale label in `blog/INDEX.md` for post
 `0016` while in there. `BACKLOG.md` updated with rows `29`-`37`.
-
----
-
-## 2026-07-23 — blog moved home: audos.merkhetventures.com
-
-The owner transferred `merkhetventures.com`'s DNS to Cloudflare. Before treating that as safe to build
-on, pulled the newly-imported zone's DNS records directly and confirmed all 5 Google Workspace MX
-records, all 4 GitHub Pages A records, the Google Workspace CNAMEs, and the XMPP SRV records came
-through intact — checked before, not after, trusting the nameserver cutover. Once the zone activated
-and its TLS cert issued, attached `audos.merkhetventures.com` as the blog's Custom Domain, declared it
-in `wrangler.toml`, and redeployed — which cleanly auto-detached the prior `sdk.bathala.io` stopgap in
-the same step (confirmed `bathala.io` itself unaffected). Verified the new URL with repeated
-401/401/200 checks before calling it done. `docs/platform/27` updated with the full history.
-
----
-
-## 2026-07-22 (latest) — blog moved to a real Custom Domain: sdk.bathala.io
-
-Wanted `sdk.merkhetventures.com` (this project's actual account) but it's blocked twice over:
-`merkhetventures.com`'s DNS isn't on Cloudflare and carries live email + a live site, so a full
-nameserver move isn't something to do casually; and the lower-risk fix — Cloudflare's "Subdomain
-setup" (delegate just the one subdomain via a single NS record, no risk to the root domain) — turned
-out to be Enterprise-plan only, confirmed directly against the account (`enterprise_zone_quota.maximum:
-0`). Used `sdk.bathala.io` instead (another domain already live on the same Cloudflare account) as a
-stopgap. Verified live: 401/401/200 across repeated no-auth/wrong-creds/correct-creds checks, both
-before and after making the custom domain declarative in `wrangler.toml`. `docs/platform/27` updated
-with the full reasoning and a third "mistake" entry (proposed an Enterprise-gated feature without
-checking plan-gating first). Open item logged: move to `sdk.merkhetventures.com` once that domain's
-transfer to Cloudflare actually happens.
-
----
-
-## 2026-07-22 (later) — SDK blog is live off Audos, on Cloudflare, Basic Auth-gated
-
-Deployed the SDK build-log blog to a Cloudflare Worker (Merkhet Ventures account) with a Static Assets
-binding and HTTP Basic Auth — `https://audos-sdk-blog.sowgood.workers.dev`. Chose Cloudflare over
-Vercel after a Vercel login landed on the wrong (Tahua) account with a server-side default-team
-preference that wasn't visible locally. Caught and fixed a real Cloudflare Workers gotcha along the
-way: static assets bypass the Worker's own auth check by default unless `run_worker_first` is set, and
-edge caching ignored the `Authorization` header, letting an authenticated response get replayed to
-unauthenticated requests — both fixed and reverified across five rounds before trusting it. New durable
-doc: `docs/platform/27`. `blog/HOW-TO-UPDATE.md` step 4 updated to point at the new hosting.
 
 ---
 

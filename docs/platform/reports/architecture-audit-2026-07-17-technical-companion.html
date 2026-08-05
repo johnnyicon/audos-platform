@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Audos Technical Companion — 2026-07-17</title>
+<style>
+  :root {
+    --bg:#fff; --fg:#1a1c1e; --muted:#5b6068; --rule:#e2e5e9; --card:#f7f8fa; --card-rule:#e6e9ee;
+    --accent:#1f6feb; --code-bg:#f0f2f5; --code-fg:#2b2f36; --strong:#101215;
+    --s1-bg:#fbecec; --s1-fg:#a11515; --s2-bg:#fdf3e3; --s2-fg:#8a5a12; --s3-bg:#eef2f6; --s3-fg:#4a5560;
+    --th-bg:#eef1f5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#14161a; --fg:#d7dbe0; --muted:#969ca6; --rule:#2a2e35; --card:#1c1f25; --card-rule:#2e333c;
+      --accent:#5c9dff; --code-bg:#24272e; --code-fg:#d0d4da; --strong:#f2f4f7;
+      --s1-bg:#3a1e1e; --s1-fg:#ff9a9a; --s2-bg:#3a2f1a; --s2-fg:#e8c07a; --s3-bg:#242a31; --s3-fg:#9fb0bf;
+      --th-bg:#22262d;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg:#fff; --fg:#1a1c1e; --muted:#5b6068; --rule:#e2e5e9; --card:#f7f8fa; --card-rule:#e6e9ee;
+    --accent:#1f6feb; --code-bg:#f0f2f5; --code-fg:#2b2f36; --strong:#101215;
+    --s1-bg:#fbecec; --s1-fg:#a11515; --s2-bg:#fdf3e3; --s2-fg:#8a5a12; --s3-bg:#eef2f6; --s3-fg:#4a5560; --th-bg:#eef1f5;
+  }
+  :root[data-theme="dark"] {
+    --bg:#14161a; --fg:#d7dbe0; --muted:#969ca6; --rule:#2a2e35; --card:#1c1f25; --card-rule:#2e333c;
+    --accent:#5c9dff; --code-bg:#24272e; --code-fg:#d0d4da; --strong:#f2f4f7;
+    --s1-bg:#3a1e1e; --s1-fg:#ff9a9a; --s2-bg:#3a2f1a; --s2-fg:#e8c07a; --s3-bg:#242a31; --s3-fg:#9fb0bf; --th-bg:#22262d;
+  }
+  * { box-sizing:border-box; }
+  html { -webkit-text-size-adjust:100%; }
+  body {
+    margin:0; background:var(--bg); color:var(--fg);
+    font:16px/1.62 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  .wrap { max-width:900px; margin:0 auto; padding:48px 24px 96px; }
+  header.doc { border-bottom:2px solid var(--rule); padding-bottom:26px; margin-bottom:32px; }
+  h1 { font-size:1.85rem; line-height:1.25; margin:0 0 12px; color:var(--strong); letter-spacing:-0.01em; }
+  .subtitle { color:var(--muted); font-size:0.93rem; margin:0; font-style:italic; }
+  h2 { font-size:1.35rem; margin:48px 0 8px; padding-top:20px; border-top:1px solid var(--rule); color:var(--strong); letter-spacing:-0.01em; }
+  h2.nostroke { border-top:none; padding-top:0; }
+  h3 { font-size:1.1rem; margin:30px 0 8px; color:var(--strong); }
+  h4 { font-size:0.98rem; margin:20px 0 6px; color:var(--strong); }
+  p { margin:0 0 13px; }
+  a { color:var(--accent); text-decoration:none; }
+  a:hover { text-decoration:underline; }
+  strong { color:var(--strong); font-weight:650; }
+  code {
+    background:var(--code-bg); color:var(--code-fg); padding:1px 5px; border-radius:4px; font-size:0.84em;
+    font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace; word-break:break-word;
+  }
+  pre {
+    background:var(--code-bg); color:var(--code-fg); padding:14px 16px; border-radius:8px; overflow-x:auto;
+    font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace; font-size:0.82rem; line-height:1.5;
+    margin:0 0 16px; border:1px solid var(--card-rule);
+  }
+  pre code { background:none; padding:0; font-size:inherit; }
+  ul,ol { margin:0 0 13px; padding-left:22px; }
+  li { margin:0 0 8px; }
+  blockquote { margin:0 0 18px; padding:12px 18px; border-left:3px solid var(--accent); background:var(--card); border-radius:0 6px 6px 0; font-size:0.94rem; }
+  .toc { background:var(--card); border:1px solid var(--card-rule); border-radius:10px; padding:18px 24px; margin:0 0 8px; font-size:0.92rem; }
+  .toc ol { margin:6px 0 0; } .toc li { margin-bottom:5px; }
+  .tablewrap { overflow-x:auto; margin:0 0 18px; border:1px solid var(--card-rule); border-radius:10px; }
+  table { border-collapse:collapse; width:100%; font-size:0.86rem; min-width:720px; }
+  th,td { text-align:left; padding:8px 11px; border-bottom:1px solid var(--rule); vertical-align:top; }
+  th { background:var(--th-bg); color:var(--strong); font-weight:650; position:sticky; top:0; }
+  tbody tr:last-child td { border-bottom:none; }
+  .sev { display:inline-block; font-size:0.72rem; font-weight:700; padding:1px 7px; border-radius:5px; white-space:nowrap; }
+  .s1 { background:var(--s1-bg); color:var(--s1-fg); }
+  .s2 { background:var(--s2-bg); color:var(--s2-fg); }
+  .s3 { background:var(--s3-bg); color:var(--s3-fg); }
+  .sub { border:1px solid var(--card-rule); border-radius:10px; padding:6px 22px 16px; margin:20px 0; background:var(--card); }
+  .k { color:var(--muted); font-weight:650; }
+  .legend { font-size:0.85rem; color:var(--muted); margin:0 0 20px; }
+  .legend .sev { margin-right:4px; }
+  .footer-note { margin-top:56px; padding-top:20px; border-top:1px solid var(--rule); color:var(--muted); font-size:0.84rem; }
+  .tier { font-size:0.78rem; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="doc">
+  <h1>Audos Platform — Technical Companion to the Architecture Audit</h1>
+  <p class="subtitle">Engineering annex to <code>architecture-audit-2026-07-17</code>, dated 2026-07-17.
+  Where the audit ranks root causes by leverage, this document is the implementation-level reference: exact
+  failure modes, reproductions, root-cause hypotheses, blast radius, current workaround, and a concrete fix
+  spec for each — subsystem by subsystem. Every entry maps to a cited finding in <code>audos-platform</code>.</p>
+</header>
+
+<div class="toc">
+  <strong>Contents</strong>
+  <ol>
+    <li><a href="#reg">Issue register</a> — severity × workaround × filed</li>
+    <li><a href="#deep">Subsystem deep-dives</a></li>
+    <li><a href="#reme">Remediation plan</a> — prioritized backlog</li>
+    <li><a href="#method">Verification methodology</a></li>
+    <li><a href="#corr">Correction log</a></li>
+  </ol>
+</div>
+
+<p class="legend">
+  <span class="sev s1">S1</span> blocks or silently corrupts (no safe workaround) &nbsp;·&nbsp;
+  <span class="sev s2">S2</span> structural friction (workaround exists but costly/fragile) &nbsp;·&nbsp;
+  <span class="sev s3">S3</span> papercut / documentation
+</p>
+
+<h2 id="reg" class="nostroke">1. Issue register</h2>
+<div class="tablewrap">
+<table>
+<thead><tr><th>ID</th><th>Subsystem</th><th>Issue</th><th>Sev</th><th>Workaround</th><th>Filed</th><th>Source</th></tr></thead>
+<tbody>
+<tr><td>J-1</td><td>Job dispatch</td><td>Self-reports ("verified") don't match live state</td><td><span class="sev s1">S1</span></td><td>Re-verify every job live</td><td>no</td><td><code>bugs/0007</code></td></tr>
+<tr><td>J-2</td><td>Job dispatch</td><td>Completion reports truncate at the critical line</td><td><span class="sev s2">S2</span></td><td>Read full report from Tasks-board UI</td><td>no</td><td><code>bugs/0008</code></td></tr>
+<tr><td>J-3</td><td>Job dispatch</td><td>No progress/cancel; hang ≈ slow</td><td><span class="sev s2">S2</span></td><td>Dispatch-then-poll; wait it out</td><td>#10</td><td><code>bugs/0018</code></td></tr>
+<tr><td>J-4</td><td>Job dispatch</td><td>Same-scope jobs serialize silently</td><td><span class="sev s2">S2</span></td><td>Never run two jobs on one app scope</td><td>no</td><td><code>bugs/0018</code></td></tr>
+<tr><td>J-5</td><td>Job dispatch</td><td><code>usage_limit_exceeded</code> on Audos's shared Cursor account</td><td><span class="sev s2">S2</span></td><td>Retry later; owner can't clear</td><td>no</td><td><code>bugs/0006</code></td></tr>
+<tr><td>P-1</td><td>State/publish</td><td><code>GET /files</code> = <strong>published</strong> only; draft invisible</td><td><span class="sev s1">S1</span></td><td>Preview panel Draft/Live toggle</td><td>no</td><td><code>bugs/0022</code></td></tr>
+<tr><td>P-2</td><td>State/publish</td><td>"Published: yes" means 3 different things</td><td><span class="sev s2">S2</span></td><td>Cache-bust + eyeball live</td><td>no</td><td><code>bugs/0005</code></td></tr>
+<tr><td>P-3</td><td>State/publish</td><td>Stale served bundle after publish</td><td><span class="sev s2">S2</span></td><td><code>?_cb=&lt;ts&gt;</code> cache-bust</td><td>no</td><td><code>bugs/0005</code></td></tr>
+<tr><td>P-4</td><td>State/publish</td><td>GitHub push→live 15–30 min; webhooks silently dropped</td><td><span class="sev s2">S2</span></td><td>Manual "Sync from GitHub"; poll file API</td><td>no</td><td><code>docs/16</code></td></tr>
+<tr><td>D-1</td><td>Database</td><td>Failed <code>CREATE TABLE</code> leaves orphaned, undroppable table</td><td><span class="sev s1">S1</span></td><td>Recreate under a new name</td><td>yes</td><td><code>bugs/0019</code></td></tr>
+<tr><td>D-2</td><td>Database</td><td><code>id</code> forced <code>serial</code>; <code>uuid</code> PK rejected; 2 cols injected</td><td><span class="sev s2">S2</span></td><td>FKs as <code>integer</code>; expect extra cols</td><td>yes</td><td><code>bugs/0020</code></td></tr>
+<tr><td>D-3</td><td>Database</td><td>No vector type / no pgvector / no <code>CREATE EXTENSION</code></td><td><span class="sev s1">S1</span></td><td>Brute-force JS cosine (small scale only)</td><td>no</td><td><code>bugs/0015</code></td></tr>
+<tr><td>D-4</td><td>Database</td><td><code>json</code> writes fail unless <code>JSON.stringify</code>'d (×3)</td><td><span class="sev s2">S2</span></td><td>Stringify on every write</td><td>n/a</td><td><code>docs/19</code></td></tr>
+<tr><td>D-5</td><td>Database</td><td>Direct-Postgres credentials one-shot; no view/rotate path</td><td><span class="sev s1">S1</span></td><td>None through UI — blocked</td><td>#19</td><td><code>bugs/0023</code></td></tr>
+<tr><td>D-6</td><td>Database</td><td>Possible <code>rawQuery</code> leading-keyword-only validation</td><td><span class="sev s2">S2?</span></td><td>—</td><td>#17</td><td><code>bugs/0021</code></td></tr>
+<tr><td>R-1</td><td>Runtime</td><td>Dual-React: user packages omit React pin → error #31, blank</td><td><span class="sev s1">S1</span></td><td>Inspect importmap; pin <code>?deps=react@18.3.1</code></td><td>no</td><td><code>docs/16</code></td></tr>
+<tr><td>R-2</td><td>Runtime</td><td>Compiles every <code>.tsx</code> in app dir regardless of imports</td><td><span class="sev s2">S2</span></td><td>Keep no dead/broken files</td><td>no</td><td><code>docs/16</code></td></tr>
+<tr><td>R-3</td><td>Runtime</td><td>Sandbox gaps: no <code>URLSearchParams</code>/<code>Buffer</code>/<code>setTimeout</code>/<code>fs</code></td><td><span class="sev s2">S2</span></td><td>Hand-rolled helpers per hook</td><td>n/a</td><td><code>docs/07,08</code></td></tr>
+<tr><td>R-4</td><td>Runtime</td><td>Hash routing only; no real browser-URL ownership</td><td><span class="sev s3">S3</span></td><td>Query-param router workaround</td><td>no</td><td><code>docs/16</code></td></tr>
+<tr><td>I-1</td><td>Integrations</td><td><code>proxy()</code> body must be JSON <strong>string</strong>; object → silent 200+HTML</td><td><span class="sev s1">S1</span></td><td>Always <code>JSON.stringify</code> the body</td><td>n/a</td><td><code>experiments/0012</code></td></tr>
+<tr><td>I-2</td><td>Integrations</td><td>Undocumented surface; <code>isAvailable()</code> false negatives</td><td><span class="sev s2">S2</span></td><td>Bare provider name + <code>proxy()</code> directly</td><td>n/a</td><td><code>experiments/0011→0012</code></td></tr>
+<tr><td>I-3</td><td>Integrations</td><td><code>/api/upload/image</code> silently corrupts non-images</td><td><span class="sev s1">S1</span></td><td>Use <code>/api/upload/file</code> (multipart)</td><td>no</td><td><code>bugs/0017</code></td></tr>
+<tr><td>I-4</td><td>Integrations</td><td>Can't read platform code (<code>search_platform_code</code> empty)</td><td><span class="sev s3">S3</span></td><td>Empirical probe apps</td><td>no</td><td><code>feature-requests/0009</code></td></tr>
+<tr><td>S-1</td><td>Scheduler</td><td>Recurring schedules fire inconsistently; no diagnostics</td><td><span class="sev s2">S2</span></td><td>Client-orchestrated sequential hook calls</td><td>no</td><td><code>bugs/0016</code></td></tr>
+<tr><td>S-2</td><td>Scheduler</td><td>No one-time hook scheduling at all</td><td><span class="sev s3">S3</span></td><td>Email-scheduling endpoint only</td><td>no</td><td><code>bugs/0016</code></td></tr>
+<tr><td>U-1</td><td>UI shell</td><td>Chat-shell default; escape needs a 4-step checklist</td><td><span class="sev s2">S2</span></td><td>The <code>docs/22</code> playbook (inherits once fixed)</td><td>some</td><td><code>bugs/0001–0004</code></td></tr>
+<tr><td>U-2</td><td>UI shell</td><td><code>Desktop.tsx</code> workspace-shared &amp; mutable (blast radius)</td><td><span class="sev s2">S2</span></td><td>Treat shell edits as workspace-global</td><td>no</td><td><code>experiments/0005</code></td></tr>
+<tr><td>SEC-1</td><td>Identity</td><td>EmailGate open by default; OTP configurable only via API</td><td><span class="sev s1">S1</span></td><td>Enable OTP via browser-console <code>fetch</code></td><td>no</td><td><code>docs/17</code></td></tr>
+<tr><td>SEC-2</td><td>Identity</td><td>Sessions don't appear to expire; no sign-out primitive</td><td><span class="sev s2">S2</span></td><td>TTL + sign-out over localStorage</td><td>no</td><td><code>docs/17</code>*</td></tr>
+</tbody>
+</table>
+</div>
+<p class="legend"><em>Filed = raised with Audos (Priority Support / BACKLOG #). "n/a" = a usage discipline,
+not something to file. Severity is this annex's assessment, not the source's.</em></p>
+
+<h2 id="deep">2. Subsystem deep-dives</h2>
+
+<div class="sub">
+<h3>2.1 Job dispatch &amp; observability — the black-box boundary (Gap 1)</h3>
+<p>Every structural change is a natural-language instruction to Otto, which stages a draft Task and
+dispatches it to a <strong>Cursor Background Agent</strong>. The dispatcher returns a task ID; results
+arrive only on completion — this path has no streaming channel. <em>(The newer Audos Code surface does stream
+a live step-log; see J-1b.)</em></p>
+<p><strong>Backend migration — read this before treating any Cursor-specific finding as current.</strong>
+The path above is <strong>Cursor-backed</strong>. The newer Audos Code surface runs on a <strong>different
+backend — Anthropic's Claude Code</strong> (model visualizer routes through <code>claude-opus-4-8</code>;
+picker lists Opus 4.8 / Fable 5 labeled "Claude Code / Anthropic"; Fable 5 shows a transparent "0% of daily
+budget used" quota, not the opaque shared-account failure of <code>bugs/0006</code>). Audos appears
+<strong>mid-migration</strong> between the two. Consequences for this register: J-2's Cursor-stream-truncation
+root cause, J-5's shared-Cursor-account <code>usage_limit_exceeded</code>, and the <code>cursorModel</code>-pinning
+method (<code>experiments/0004</code>) are <strong>legacy-path-specific</strong> and may not apply to where
+Audos is heading. They're flagged inline.</p>
+<p><strong>J-1 — self-reports vs. reality (S1).</strong> Jobs reported <code>complete</code> /
+<code>published</code> / verbatim <code>"verified — three lesson rows inserted with valid JSON arrays"</code>,
+and the live app reproduced the identical failure (<code>Insert failed: invalid input syntax for type
+json</code>) on immediate re-test — twice. <span class="k">Root cause (Otto's own):</span> an
+<strong>authority-boundary gap</strong> — the agent reports truthfully on its sandbox, but confirmation
+gates and publish/recompile are enforced Audos-side, outside its visibility. <span class="k">Fix:</span>
+surface platform-side gate/publish result into the job's completion context, and/or a mandatory post-build
+smoke check (load route → assert no error → assert target DOM node) before "verified"
+(<code>feature-requests/0001</code>).</p>
+<p><strong>J-1b — same failure mode, newer surface, different backend. Verified live 2026-07-17 (~25 min).</strong>
+Audos Code (Beta 0.3.0, <code>audos.com/portfolio/code</code>) is a genuine improvement on <em>observability</em>:
+a Settings toggle ("Assistant output — show token-by-token output") is <strong>on by default</strong>, and
+during a run the left panel streams a typed step-log (<code>Command run</code>, <code>Tool call</code>,
+<code>File change</code>, a live duration counter, a specific completion line). It also runs on a
+<strong>different backend</strong>: the model visualizer routes through <code>claude-opus-4-8</code> and the
+picker lists Opus 4.8 / Fable 5 labeled "Claude Code / Anthropic" — Audos is migrating off Cursor onto
+Anthropic's Claude Code (see the §2.1 architecture note). <strong>But the completion-<em>trust</em> problem is
+unchanged, and that's the point.</strong> Reproduced in under two minutes: asked to change a headline's
+<code>.</code> to <code>!</code>, it streamed real steps, ran 29s, and reported <code>"Done. The headline now
+reads 'Stop saving. Start knowing!' … Nothing else was touched."</code> with an "Up to date" status; the
+rendered preview still showed <code>.</code>, confirmed by zoom and after a manual refresh. Same defect as J-1
+— on the <em>new</em> backend, in the <em>more observable</em> UI. The self-report/reality mismatch is not a
+Cursor artifact and not an observability artifact; it survives both. <span class="k">Implication:</span> the
+J-1 fix spec (a trustworthy verification gate) is not obviated by the live log — the log shows
+<em>activity</em>, not <em>correctness</em>. Notably, Audos Code's in-app browser-test runner — exactly that
+gate — is currently shown <em>paused</em> ("disabled … while we make its results reliable enough to trust"),
+so this is a fix Audos already appears to be part-way toward. <em>(Maturity: Audos Code failed to load
+<strong>four times across ~40 minutes over two sessions on 2026-07-17</strong> — "could not be loaded, try
+again" or a stuck traffic spinner — a reproducible reliability signal, not a one-off.)</em></p>
+<p><strong>J-2 — truncation (S2, legacy-path-specific).</strong> Summaries cut off mid-sentence ≥8 times at
+the root-cause/diff/publish line (<code>bugs/0008</code>). Upstream cause (Cursor stream truncation) — but
+still an Audos choice on the legacy path. <strong>This attribution is specific to the Cursor backend; Audos
+Code streams a live step-log on the Claude Code backend (J-1b), so this particular failure may not carry
+forward.</strong> The full report is readable from the Tasks-board UI, not the dispatch API.</p>
+<p><strong>J-3 — no progress/cancel (S2).</strong> <code>list_jobs</code> outcome field stays empty until
+terminal; <code>get_hook_logs</code>/<code>get_audos_code_status</code> don't apply; harness
+<code>TaskStop</code>/<code>TaskList</code> can't see jobs-board tasks. A 45m01s job (67+ actions) was
+briefly misread as hung — a real hang is indistinguishable from slow, with no abort either way
+(<code>bugs/0018</code>). <span class="k">Fix:</span> live log stream + cancel endpoint.</p>
+<p><strong>J-4 / J-5.</strong> Two same-scope jobs serialize (second sits <code>Queued</code>, no signal);
+dispatch can instant-fail <code>usage_limit_exceeded</code> against <strong>Audos's own</strong> shared
+Cursor account, unclearable by the owner (<code>bugs/0006</code>). <em>(J-5 is legacy-path-specific: Audos
+Code's Claude Code backend showed a transparent per-model "0% of daily budget used" quota instead — this
+failure mode looks already-addressed there.)</em></p>
+</div>
+
+<div class="sub">
+<h3>2.2 State, publish &amp; bundle — no authoritative "what exists now" (Gap 2)</h3>
+<p><strong>P-1 — published-only file API (S1).</strong> <code>GET /api/space/{id}/files</code> and
+<code>.../file/config.json</code> reflect <strong>only the published bundle</strong>. For an app in Draft,
+both return empty (<code>{"files": []}</code> / <code>{"content": ""}</code>) — identical to "nothing was
+built." This caused a false data-loss report, filed and escalated to an engineer before same-day
+retraction; ground truth was visible only via the Preview panel's <strong>Draft vs. Live</strong> toggle
+(<code>bugs/0022</code>). <span class="k">Fix:</span> a state API distinguishing draft from published.
+<em>(Partial credit, newer surface, live 2026-07-17: Audos Code exposes an explicit
+<code>audos.com/site/{id}?env=live</code> URL that disambiguates draft vs. live in the UI. The API-level
+opacity of <code>GET /files</code> is presumably unchanged for programmatic integrators — who are exactly who
+this fix is for.)</em></p>
+<p><strong>P-2 / P-3 — "published" ambiguity (S2).</strong> <code>list_apps</code> can show
+<code>published: yes</code> while the served bundle is stale (404 route), observed when a concurrent
+same-scope job held the publish. Manual <code>?_cb=&lt;epoch-ms&gt;</code> forces the fresh bundle; the
+platform sometimes emits <code>?_cb=…&amp;cdn=fallback</code> itself. <span class="k">Fix:</span>
+publish-status endpoint (served bundle hash/timestamp); auto-cache-bust on publish.</p>
+<p><strong>P-4 — GitHub deploy pipeline (S2).</strong> <code>push → webhook → sync → ESBuild → CDN</code>,
+15–30 min, "occasionally a push webhook is silently dropped by Audos — no error, no indication,"
+remediated only by a manual "Sync from GitHub" click (<code>docs/platform/16</code>). No progress events.</p>
+</div>
+
+<div class="sub">
+<h3>2.3 Database &amp; schema — non-transactional, undocumented, indirect (Gap 3)</h3>
+<p><strong>D-1 — orphaned tables, no rollback (S1).</strong> <code>workspace_db_create_table</code> with an
+unsatisfiable FK fails (<code>foreign key constraint "fk_app_site_sessions_access_id" cannot be
+implemented</code>) <strong>without rolling back</strong>, leaving a physical <code>app_site_sessions</code>
+relation the catalog doesn't track. Retries fail <code>relation "app_site_sessions" already exists</code>;
+the orphan is invisible to <code>db_list_tables</code> and there is no <code>drop_table</code> tool. Only
+escape: a new name (<code>site_sessions_v2</code>) (<code>bugs/0019</code>). <span class="k">Fix:</span>
+atomic DDL, or minimum a <code>drop_table</code> tool.</p>
+<p><strong>D-2 — silent schema rewriting (S2).</strong> <code>id</code> is always a generated
+<code>serial</code>; <code>id: uuid</code> → <code>column "id" specified more than once</code>. Every table
+silently gains <code>session_id</code> (text) and <code>updated_at</code> (timestamp default
+<code>NOW()</code>). Types are enum-restricted to
+<code>text/integer/bigint/decimal/boolean/timestamp/date/json/uuid</code>. Consequence: FKs must be
+<code>integer</code> to reference a serial PK — the exact cause of D-1 (<code>bugs/0020</code>).</p>
+<p><strong>D-3 — no vector search (S1).</strong> <em>Corrected in the audit; precise here.</em> No native
+vector column type and no pgvector. <code>vector(N)</code> → <code>invalid_enum_value</code>; a
+<code>::vector</code> cast → <code>type "vector" does not exist</code>. <code>pg_available_extensions</code>
+lists <code>vector</code> 0.8.1 and <code>vectorscale</code> 0.9.0 at <code>installed_version: null</code>
+— <strong>available in the catalog but not installed</strong> — and <code>CREATE EXTENSION</code> can't run
+because <code>db.rawQuery</code> is <code>SELECT</code>/<code>WITH</code>/<code>EXPLAIN</code>-only. The
+<em>only</em> mechanism is a brute-force cosine loop in hook JS over embeddings stored as <code>json</code>
+arrays. The benchmark (1,536-float, ~1–3ms full scan, dominated by DB fetch not math —
+<code>experiments/0013</code>) proves only that the <strong>arithmetic is cheap at small row counts</strong>
+— not retrieval quality (<code>experiments/0008</code> walked that back) and not scale (<code>bugs/0015</code>:
+"not a real retrieval index"). <span class="k">Net:</span> viable at DoKnow's scale (tens–hundreds of
+chunks/course); <strong>not a vector search capability.</strong> <span class="k">Fix:</span> install/enable
+pgvector (+vectorscale/DiskANN) or expose a managed vector column.</p>
+<p><strong>D-4 — json serialization footgun (S2).</strong> Every first write to a <code>json</code>/<code>jsonb</code>
+column failed <code>invalid input syntax for type json</code> because a raw object was sent — 3×, two apps
+(<code>docs/platform/19</code>). <span class="k">Fix:</span> accept objects and serialize server-side.</p>
+<p><strong>D-5 — one-shot credentials (S1).</strong> The Developer panel's "Generate Credentials"
+(<code>POST /api/workspaces/{id}/db-credentials</code>) works once; thereafter it returns <code>409 Conflict:
+"Credentials already exist. Use regenerate to rotate them."</code> while <strong>no regenerate/rotate/view
+control exists anywhere in the UI</strong> (full interactive-element scan confirmed one button).
+<code>GET</code> → <code>401</code>, so it is not a read-back path. Otto has no tool to view/rotate it either
+and confirms the string is shown once, never stored retrievably (<code>bugs/0023</code>,
+<code>experiments/0019</code>). <strong>This credential flow has now failed three distinct ways, zero
+successes, across three workspaces:</strong> field-notes (2026-07-16) → the 409 loop above; DoKnow's own
+workspace (2026-07-17, tried this cycle) → a <strong>silent <code>404</code> with no error toast at all</strong>
+(<code>POST /api/workspaces/workspace-156396/db-credentials</code>), worse than field-notes' visible failure;
+Throughline (April, <code>docs/platform/13</code>) → "Workspace not found." <span class="k">Fix:</span> wire
+the frontend to the regenerate capability the backend's own 409 references, and fix whatever makes the
+endpoint 404/409 rather than issue a usable credential. <strong>Among the highest capability-per-effort fixes
+we found</strong> — it would restore the one direct, transactional SQL path that eases D-1/D-2/D-3/D-6 at
+once, <em>assuming direct SQL is as full-powered as the April Throughline doc reports (not re-verified this
+cycle — 0-for-3 on even reaching it — see §5).</em> The 0-for-3 raises priority: "it works once you're in"
+cannot currently be asserted at all. <strong>Scope, though:</strong> this blocks the <em>direct psql</em>
+path only — <strong>database writes work</strong> via Audos Code's chat-driven <code>db.insert</code> layer
+on the Claude Code backend (verified live 2026-07-17: field-notes' <code>content_items</code> populated
+0 → 6 rows, confirmed via Preview feed + the live site's Field Scout assistant, no publish step — see D-5b).
+So D-5 restores a standard interface and a convenience, not the only way to get data in.</p>
+<p><strong>D-5b — content population via Audos Code works (positive).</strong> The credential bug (D-5) does
+not gate DB writes in general. Audos Code's <code>db.insert</code>/MCP tool layer (Claude Code backend)
+inserted 6 real corpus rows into <code>content_items</code> from empty, verified two independent ways
+(Preview feed shows all six with correct type/status chips; the live site's Field Scout answered "latest
+bugs" with the exact rows, immediately, no publish step). Two footnotes: a long free-text paste didn't reach
+the agent (it flagged the gap rather than fabricating — good honesty discipline; compact single-line JSON
+went through), and only 6 of ~64 items were populated in this proof-of-path batch (scales via JSON, but a
+full sync is worth a hook that takes a JSON array in one call). <em>Separate S3 quirk:</em> the "Findings"
+quick-link chip inside a Field Scout reply opens a blank side panel (reproduced twice); the feed renders
+fine through the normal Preview panel.</p>
+<p><strong>D-6 — possible rawQuery bypass (Confidence: UNCONFIRMED).</strong> Evidence the guard may check
+only the leading keyword, so <code>SELECT 1; DROP …</code> could chain a write. ~20 min of probing
+<strong>never confirmed an actual blocked write executed</strong>; flagged for Audos to verify, not
+asserted as an exploit (<code>bugs/0021</code>). <span class="k">Fix:</span> parse the full statement;
+reject multi-statement strings.</p>
+</div>
+
+<div class="sub">
+<h3>2.4 Build pipeline &amp; runtime — a fixed, non-standard target (Gaps 6, 9)</h3>
+<p>One file per app (<code>apps/&lt;Name&gt;/App.tsx</code>), server-side <strong>ESBuild</strong>,
+dependencies via <strong>importmap/CDN (esm.sh)</strong> — no <code>npm install</code>. <strong>React
+18.3.1</strong> shared host; <code>cdnDependencies</code> pins <code>deps</code>/<code>external</code> to
+the host React.</p>
+<p><strong>R-1 — dual-React (S1).</strong> The importmap adds <code>?deps=react@18.3.1</code> only to
+pre-configured packages; user-added packages resolve their own React → two copies → <strong>React error
+#31</strong>, blank page. Catchable only by inspecting network resources (<code>docs/platform/16</code>).
+<span class="k">Fix:</span> pin host React on all importmap entries or fail on duplicate.</p>
+<p><strong>R-2 — compile-everything (S2).</strong> ESBuild compiles every <code>.tsx</code> in the app dir
+regardless of the import graph, so a dead file with a bad import crashes the live app.</p>
+<p><strong>R-3 — sandbox gaps (S2).</strong> Hooks are sandboxed JS (not Node, no <code>require</code>),
+~30s timeout, ~64KB code, ~1MB response; missing <code>URLSearchParams</code>, <code>Buffer</code>,
+<code>process.env</code>, <code>setTimeout</code>, <code>fs</code>, <code>crypto</code>, and a real
+<code>Headers</code>. Every hook re-implements <code>buildQuery</code>; workspace IDs are hardcoded
+(<code>docs/platform/07, 08</code>).</p>
+<p><strong>R-4 — routing (S3).</strong> <code>Desktop.tsx</code> exact-matches the hash; apps get in-memory
+hash routing only, no browser-URL ownership. Query-param router workaround documented.</p>
+<p><strong>Build-path gap (Gap 9).</strong> There is no <em>raw</em> file-level editing — Audos Code's "Full
+in-platform editing" (Platform mode) is, on live inspection 2026-07-17, still a scoped
+natural-language-to-agent request (select element → describe change → agent executes), not a hand-typable
+editor; the March-era docs' "can't edit React code directly, must use Otto" (<code>docs/platform/02</code>,
+<code>03</code>, both 2026-03-31) still holds on that narrow point. The entire 8-endpoint API suite is
+hand-authored from templates (<code>docs/platform/09</code>); and when Cursor is over its limit, we couldn't
+reach Audos Code from the external API (needs a signed-in browser session, <code>feature-requests/0007</code>)
+— leaving an API-driven agent with no build path in that window.</p>
+</div>
+
+<div class="sub">
+<h3>2.5 Integrations &amp; the undocumented surface (Gaps 7, 8)</h3>
+<p><strong>I-1 — <code>proxy()</code> silent-success (S1).</strong> <code>platform.integrations.proxy(provider,
+path, opts)</code> is a generic authenticated passthrough to a fixed allowlist
+(<code>openai/stripe/twilio/heygen</code>); Audos injects the credential. The body <strong>must</strong> be
+a <code>JSON.stringify</code>'d string — a plain object <strong>silently returns the platform's HTML index
+page, status 200</strong> (<code>experiments/0012</code>).</p>
+<pre><code>platform.integrations.proxy('openai', '/v1/embeddings', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ model: 'text-embedding-3-small', input: '…' }),
+}); // → 200, real 1,536-float embedding, no caller API key</code></pre>
+<p><span class="k">Fix:</span> accept an object body, or return a typed 4xx on a malformed body instead of
+200 + HTML.</p>
+<p><strong>I-2 — false-negative probes (S2).</strong> <code>isAvailable()</code> returns <code>false</code>
+for guessed feature-names <em>and</em> some genuinely-installed integrations, so it's not a reliable oracle.
+The embedding path was first reported <strong>absent</strong> for this reason; it exists
+(<code>isAvailable('openai') → true</code> with the bare provider name, then <code>proxy()</code> directly).
+Undocumented live globals: <code>platform.integrations</code>, <code>platform.externalFetch</code>,
+<code>platform.getLatestSession</code>, <code>session</code>, <code>respondRaw</code>,
+<code>db.bulkInsert</code>; and <code>eval</code>/<code>Function</code>/<code>WebAssembly</code> are present
+despite docs claiming <code>eval</code> blocked.</p>
+<p><strong>I-3 — image-upload corruption (S1).</strong> <code>/api/upload/image</code> (base64) returns
+<code>HTTP 200 {"success":true}</code> with a plausible <code>.png</code> URL while <strong>corrupting</strong>
+any non-image payload (PDF: md5 <code>7fc99347…</code>/3,031B in → <code>ec78847b…</code>/3,050B out, zero
+common prefix). <code>/api/upload/file</code> (multipart) round-trips any type correctly to ~50 MiB−1
+(<code>bugs/0017</code>). <span class="k">Fix:</span> validate content type; reject or correctly store
+non-images.</p>
+<p><strong>I-4 — no platform code read (S3).</strong> <code>search_platform_code</code> → "no searchable
+directories"; <code>read_platform_file</code> path-denies — even for Otto — forcing empirical probe apps
+for what should be cheap reads (<code>feature-requests/0006, 0009</code>).</p>
+</div>
+
+<div class="sub">
+<h3>2.6 Scheduler &amp; async (Gap 5)</h3>
+<p><strong>S-1 — inconsistent firing (S2, Confidence: inconsistent-not-broken).</strong> Two hourly
+schedules (valid RRULE, <code>status: pending</code>) <strong>never fired</strong> — 2h07m / 20m past
+<code>nextRun</code>, <code>runCount: 0</code>, <code>lastError: null</code>, hook confirmed working
+directly (2026-07-14). A <strong>daily</strong> schedule later <strong>fired within ~9s</strong>
+(2026-07-16). Same mechanism, opposite results; root cause unknown, unknown to Otto. No dispatcher log,
+queue, or disabled flag (<code>bugs/0016</code>, <code>experiments/0009</code>). <span class="k">Fix:</span>
+observable per-run state + a firing guarantee.</p>
+<p><strong>S-2 — no one-time hook scheduling (S3).</strong> <code>frequency</code> is required; one-time
+scheduling exists only on the email endpoint.</p>
+<p><strong>Workaround (proven).</strong> Client-orchestrated sequential hook calls: 5/5, ~1–1.8s each, zero
+friction (<code>experiments/0010</code>). Covers anything that keeps a client open; genuinely unattended
+work still has no reliable path, and the ~5–10 min hook ceiling caps a single synchronous unit of work.</p>
+</div>
+
+<div class="sub">
+<h3>2.7 UI shell &amp; isolation (Gap 4)</h3>
+<p><strong>U-1 — the chat-shell escape (S2).</strong> <code>Desktop.tsx</code> renders shell-mode by
+default; full-screen is a different state of the same component. The 4-step escape (<code>docs/platform/22</code>):
+(1) <code>config.json</code> → <code>desktop.layout.defaultLandingView: "app"</code> +
+<code>defaultLandingAppId</code>; (2) route <code>#app-id</code> through the full-screen transition, not
+<code>openPanel()</code>; (3) chat affordance = popup, not <code>returnToAgentView()</code>; (4) resolve
+initial state in a <strong>lazy <code>useState</code> initializer</strong> reading
+<code>window.location.hash</code> synchronously — a plain default + <code>useEffect</code> correction
+produces a flash-of-old-shell caught only by a <strong>zero-delay</strong> screenshot.</p>
+<p><strong>U-2 — shared mutable shell (S2).</strong> These fixes live in a <strong>workspace-shared</strong>
+<code>Desktop.tsx</code>, so they inherit to every app for free (<code>experiments/0006, 0017</code>) — but
+a shell change has blast radius across every app, and it <strong>confounded a real experiment</strong>
+(<code>experiments/0005</code>). App-level isolation is murky (the un-root-caused cross-app "cards due"
+discrepancy, <code>BACKLOG.md #9</code>). <span class="k">Fix:</span> first-class full-screen mode + clearer
+per-app isolation.</p>
+</div>
+
+<div class="sub">
+<h3>2.8 Identity &amp; security (Gap 10)</h3>
+<p><strong>SEC-1 — open-by-default identity (S1). Re-confirmed live 2026-07-17.</strong> EmailGate default:
+"anyone who knows a user's email address can enter it and access that user's data." Reproduced on DoKnow's
+signed-out live site — a fabricated, never-used address (<code>audit-verify-2026-07-17@example.com</code>)
+signed in instantly, no OTP, no verification, landing on a real dashboard. OTP is off by default and
+<strong>exposed through no settings UI</strong> — a full settings-surface scan (2026-07-17) found no OTP
+toggle anywhere; "the only interface is the API directly," via a browser-console <code>fetch()</code>
+(<code>docs/platform/17</code>). <span class="k">Fix:</span> secure default + config UI/API.</p>
+<p><strong>SEC-2 — sessions (S2). No-sign-out re-confirmed live 2026-07-17; session-expiry not
+re-tested.</strong> There is <strong>no built-in sign-out primitive</strong> (the avatar menu does nothing;
+sign-out is done by deleting <code>localStorage</code> keys) and <strong>no OAuth</strong> on the sign-in
+modal — both re-confirmed live this cycle. Whether sessions ever expire was <strong>not</strong> re-testable
+in a quick pass (needs waiting out an unknown TTL), so that one sub-claim stays sourced to
+<code>docs/platform/17</code> (2026-04-23), not asserted.</p>
+</div>
+
+<h2 id="reme">3. Remediation plan — prioritized engineering backlog</h2>
+<p>Ordered by leverage (capability unlocked per unit of effort), not by severity count.</p>
+
+<p class="tier">P0 — highest leverage, do first</p>
+<ol>
+<li><strong>Fix the DB credential flow (D-5).</strong> It failed three ways this cycle (409 loop, silent
+404, "Workspace not found"), 0-for-3 — so this is "make the credential step work at all," not just "wire up
+regenerate." <em>Largest unlock:</em> it would restore direct transactional SQL, which would ease D-1, D-2,
+D-3, and D-6 — <em>with the caveat that "direct SQL is full-powered" is an April Throughline observation not
+re-verified this cycle (0-for-3 on even reaching it — see D-5 / §5), so the payoff is a strong inference, not
+a proven one.</em> The concrete instance of the audit's "open a power-user lane" recommendation, and the
+0-for-3 makes it more urgent, not less.</li>
+<li><strong>Finish and re-enable the in-app test runner (J-1 / J-1b).</strong> A trustworthy post-build
+verification gate before "verified," plus surfacing platform-side gate/publish state into the completion
+context. Framing matters here: Audos Code <strong>already ships</strong> this as a browser-test runner,
+currently <em>paused</em> ("disabled … while we make its results reliable enough to trust") — so the ask is
+"get the thing you paused over the line," not "build something new." We reproduced the exact
+self-report/reality mismatch it would catch (J-1b), which is the case for prioritizing it.</li>
+<li><strong>Authoritative state API (P-1, P-2).</strong> Publish-status endpoint (served bundle
+hash/timestamp) + draft-vs-published visibility. Makes "what exists now" machine-checkable.</li>
+</ol>
+
+<p class="tier">P1 — structural, high value</p>
+<ol start="4">
+<li><strong>Atomic DDL or a <code>drop_table</code> cleanup tool (D-1).</strong></li>
+<li><strong>Honor/disclose schema behavior (D-2)</strong> — requested PK types, injected columns,
+documented.</li>
+<li><strong>Install/enable pgvector (+vectorscale) or a managed vector column (D-3)</strong> — the only path
+to real vector search; the brute-force JS scan is a small-scale stopgap, not a capability.</li>
+<li><strong>Live job log stream + cancel (J-3);</strong> persist untruncated transcripts server-side
+(J-2).</li>
+<li><strong>Kill silent-success failure modes (I-1, I-3, P-2):</strong> honest status codes; upload
+content-type validation; typed 4xx on malformed <code>proxy()</code> bodies.</li>
+</ol>
+
+<p class="tier">P2 — de-risking &amp; papercuts</p>
+<ol start="9">
+<li><strong>Root-cause the scheduler (S-1)</strong> + per-run status; add one-time hook scheduling (S-2).</li>
+<li><strong>Dual-React fix (R-1):</strong> pin host React on all importmap entries or fail on duplicate.</li>
+<li><strong>Document the undocumented surface (I-2, I-4)</strong> + workspace-scoped platform-code read.</li>
+<li><strong>Secure identity defaults + config UI (SEC-1, SEC-2).</strong></li>
+<li><strong>Opt-in modern stack (R-3, R-4):</strong> current React, real dependency resolution, real URL
+ownership — non-default (<code>feature-requests/0008</code>).</li>
+<li><strong>First-class full-screen app mode + per-app isolation (U-1, U-2).</strong></li>
+</ol>
+
+<h2 id="method">4. Verification methodology (for reproducers)</h2>
+<ul>
+<li><strong>Verify live, never on self-report.</strong> Reload the published surface, redo the user action
+(<code>docs/platform/19</code>). Roughly doubles each cycle — by design.</li>
+<li><strong>Check the initial paint.</strong> Zero-delay screenshot immediately after navigation — a
+<code>useEffect</code>-corrected FOUC is invisible a few seconds later (<code>experiments/0016</code>).</li>
+<li><strong>Distinguish draft from published.</strong> <code>GET /files</code> is published-only; use the
+Preview panel toggle (<code>bugs/0022</code>). Empty file API ≠ nothing built.</li>
+<li><strong>md5 both ends of any upload.</strong> Silent corruption looks like success (<code>bugs/0017</code>).</li>
+<li><strong>Dispatch-then-poll.</strong> Background the job, poll ~90s up to ~20–30 min, log raw responses,
+keep working (<code>docs/platform/23</code>).</li>
+<li><strong>Probe the generic passthrough, not <code>isAvailable()</code>.</strong> Feature-name guesses
+give false negatives; use the bare provider name + <code>proxy()</code> (<code>experiments/0011 → 0012</code>).</li>
+<li><strong>Verify the verification.</strong> Twice, a correction itself rested on an unverified assumption
+(the file-durability retraction relied on a job's self-report about now-unrecoverable intermediate state).
+Treat a retraction as rigorously as the original claim.</li>
+</ul>
+
+<h2 id="corr">5. Correction log</h2>
+<ul>
+<li><strong>Vector search (D-3), corrected in the audit and precise here.</strong> The audit's
+<em>What's working well</em> section originally read "brute-force vector search is fast enough at real
+scale" / "semantic search is viable." That conflated and overstated three things: (1) embedding
+<strong>generation</strong> works (via <code>proxy()</code>); (2) there is <strong>no vector search and no
+pgvector</strong> — only a brute-force JS scan over JSON arrays; (3) the benchmark proved <strong>cheap
+arithmetic at small row counts</strong>, not retrieval quality and not scaling. Corrected in both audit
+files and reflected in D-3. The user flagged this directly — and was right.</li>
+<li><strong>pgvector state.</strong> Also corrected: "installed but unenabled" → <strong>available in the
+catalog but not installed</strong> (<code>installed_version: null</code>) — a distinction the corpus itself
+had already corrected once (<code>CHANGELOG.md</code>, round-2).</li>
+<li><strong>Confidence flags carried forward.</strong> D-6 (rawQuery bypass) is <strong>unconfirmed</strong>
+— not a proven exploit. S-1 (scheduler) is <strong>inconsistent, not broken</strong>. U-2 / <code>BACKLOG.md
+#9</code> is an <strong>un-root-caused hint on thin evidence</strong>. Any of these hardening into a firm
+claim requires a fresh, dedicated reproduction.</li>
+<li><strong>Audos Code added after a ~25-min live drive (2026-07-17).</strong> A whole newer editing surface
+— Audos Code (Beta 0.3.0, <code>audos.com/portfolio/code</code>) — was absent from the original corpus and
+first draft. Driven live, it turned out to be a real improvement in <em>observability</em> (token-by-token
+streaming step-log, default-on; live draft preview; an explicit <code>?env=live</code> URL that clears up the
+draft/published ambiguity in-UI). It also <strong>runs on a different backend — Anthropic's Claude Code, not
+Cursor</strong> — so Audos looks mid-migration, and several Cursor-specific findings (J-2 truncation, J-5
+usage-limit, <code>cursorModel</code> pinning) are now flagged legacy-path-specific. But the completion-trust
+defect reproduced there in under two minutes on that new backend (the period-to-exclamation-point edit) —
+which makes Gap 1 <em>stronger</em>, not weaker. Audos Code was <strong>not</strong> exhaustively evaluated
+(and failed to load four times across ~40 minutes over two sessions on 2026-07-17 — young, and a
+reproducible reliability signal in its own right).</li>
+<li><strong>"Direct SQL is full-powered" downgraded to 0-for-3 (2026-07-17).</strong> The positive claim was
+cut from "works, only the credential flow is broken" to an honest "designed to work, reportedly worked in
+April (Throughline), but every attempt to <em>reach</em> it this cycle failed differently — field-notes 409,
+DoKnow silent 404, Throughline 'Workspace not found' — three workspaces, zero successes." It is not a
+verified-working escape hatch today; it's a documented intention with a 0-for-3 record on the credential
+step. This <em>raises</em> the priority of the D-5 fix rather than lowering it.</li>
+<li><strong>Identity (SEC-1/SEC-2) re-verified live 2026-07-17.</strong> EmailGate open-by-default
+(fabricated-email instant sign-in, no OTP), no OTP settings UI, no built-in sign-out, and no OAuth were all
+re-confirmed live this cycle — staleness flags dropped on those. The single sub-claim still unverified is
+whether sessions ever expire (needs waiting out a TTL); it stays sourced to April.</li>
+<li><strong>Staleness caveat, narrowed.</strong> After the 2026-07-17 re-verification, the claims still
+resting on March–April docs and <strong>not re-verified this cycle</strong> are: Gap 6 runtime specifics
+(single-file / React 18 / hash routing / no-npm — the quick re-check was blocked by Audos Code's repeated
+load failures) and the "sessions never expire" sub-claim. These carry inline "sourced [month], not
+re-verified" flags; Gap 10's other identity claims and Gap 9's file-editing point were re-confirmed live and
+no longer do.</li>
+<li><strong>Cross-check complete (2026-07-17).</strong> The load-bearing claims here were sent back to the
+originating DOKNOW-DEV session and confirmed: D-3 (vector search) facts correct and the "strength" framing
+rightly dropped; I-1 (embedding generation + JSON-string-body gotcha) accurate and kept distinct from
+search; S-1 (scheduler) is "inconsistent, root cause unknown," not broken or fixed; D-6 (rawQuery) stays
+explicitly unconfirmed. Two nuances it added are also folded in: the file-durability retraction
+<em>itself</em> later rested on an unverified second-job self-report (a deeper Gap-1 example than the
+original bug), and the "shell-escape from birth" verdict came from a second hands-on check after the first
+job's self-reported success was lost to a crash — not from trusting the job.</li>
+</ul>
+
+<p class="footer-note">Audos technical companion · 2026-07-17 · annex to
+<code>architecture-audit-2026-07-17</code>. Every entry maps to a cited finding in the
+<code>audos-platform</code> evidence corpus. Severity assessments are this annex's; confidence flags are
+carried verbatim from the source.</p>
+
+</div>
+</body>
+</html>

@@ -1,2 +1,23 @@
 .DS_Store
 tmp/
+
+# Local agent/host tooling — not part of the SDK record, and these carry a private
+# host address (Tailscale-range IP) plus local filesystem paths. This repo is public.
+# Gomanan regenerates these files, so they are ignored rather than merely unstaged.
+.gomanan/
+.claude/
+.mcp.json
+.github/copilot-instructions.md
+CLAUDE.md
+AGENTS.md
+
+# Empty Gomanan scaffolding stubs ("Project North Star goes here.") — no content,
+# and they collide with this repo's real docs/platform/ structure.
+docs/NORTH_STAR.md
+docs/capabilities/
+docs/decision-journals/
+docs/adr/
+
+# Separate project, deliberately kept out of the shareable SDK record: this log holds
+# raw DoKnow/field-notes working detail including verbatim in-the-moment quotes.
+field-notes/

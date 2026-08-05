@@ -27,3 +27,11 @@ email step).
 **Verdict:** confirmed and consequential. A workspace owner who builds their own auth for a private tool
 does not actually control the front door by default — Audos's own identity/lead-capture layer does,
 silently, with real third-party data-sharing side effects. See `bugs/0024` for the filed finding.
+
+**Re-verified live, 2026-07-23 — still true, and slightly worse than first found.** Opened the real
+field-notes site cold (no session) and went through the flow again rather than trusting the original
+finding to still hold six days later. Same result: the custom `site_access` username/password gate never
+appears at all. This time, typing in a fresh, never-used, made-up email address didn't even trigger an
+OTP prompt — it walked straight into the full app with zero verification of any kind. Whatever gate
+exists today is Audos's own EmailGate, still unconditional, still the only thing a visitor sees, six days
+after the original finding and with no change in behavior.

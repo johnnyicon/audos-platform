@@ -1,0 +1,321 @@
+<style>
+  :root{
+    --paper:#EEF1EF; --surface:#FFFFFF; --ink:#1B2321; --ink-soft:#55625D; --ink-faint:#8B968F;
+    --accent:#B8722E; --accent-soft:#F2E4D3; --accent-ink:#7A4A1B;
+    --confirmed:#2F7A5E; --confirmed-soft:#E1EFE8;
+    --contradicted:#B8472E; --contradicted-soft:#F5E1DB;
+    --line:#D3D9D5; --line-strong:#B7C0BB;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --paper:#121815; --surface:#182019; --ink:#E4EAE6; --ink-soft:#93A29B; --ink-faint:#5E6C66;
+      --accent:#E0A15C; --accent-soft:#3A2A16; --accent-ink:#F0C593;
+      --confirmed:#5FBE95; --confirmed-soft:#183226;
+      --contradicted:#E08063; --contradicted-soft:#3A1F17;
+      --line:#2A332E; --line-strong:#3C4A43;
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#121815; --surface:#182019; --ink:#E4EAE6; --ink-soft:#93A29B; --ink-faint:#5E6C66;
+    --accent:#E0A15C; --accent-soft:#3A2A16; --accent-ink:#F0C593;
+    --confirmed:#5FBE95; --confirmed-soft:#183226;
+    --contradicted:#E08063; --contradicted-soft:#3A1F17;
+    --line:#2A332E; --line-strong:#3C4A43;
+  }
+  :root[data-theme="light"]{
+    --paper:#EEF1EF; --surface:#FFFFFF; --ink:#1B2321; --ink-soft:#55625D; --ink-faint:#8B968F;
+    --accent:#B8722E; --accent-soft:#F2E4D3; --accent-ink:#7A4A1B;
+    --confirmed:#2F7A5E; --confirmed-soft:#E1EFE8;
+    --contradicted:#B8472E; --contradicted-soft:#F5E1DB;
+    --line:#D3D9D5; --line-strong:#B7C0BB;
+  }
+  *{box-sizing:border-box}
+  body{
+    background:var(--paper); color:var(--ink); margin:0;
+    font-family:Iowan Old Style, Palatino Linotype, Palatino, Georgia, serif;
+    line-height:1.65; font-size:16px;
+  }
+  .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;}
+  .wrap{max-width:760px; margin:0 auto; padding:3.5rem 1.5rem 6rem;}
+  h1,h2,h3{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight:700; color:var(--ink); text-wrap:balance; margin:0;}
+  .eyebrow{
+    font-family:ui-monospace, monospace; font-size:0.72rem; letter-spacing:0.12em; text-transform:uppercase;
+    color:var(--ink-faint); margin-bottom:0.6rem;
+  }
+  header.masthead{border-bottom:2px solid var(--ink); padding-bottom:1.75rem; margin-bottom:2.5rem;}
+  header.masthead h1{font-size:clamp(1.6rem,4vw,2.15rem); letter-spacing:-0.01em; line-height:1.15;}
+  .masthead-sub{font-family:Iowan Old Style, Georgia, serif; font-size:1.05rem; color:var(--ink-soft); margin-top:0.85rem; max-width:52ch;}
+  .masthead-meta{display:flex; gap:1rem; flex-wrap:wrap; align-items:center; margin-top:1.4rem; font-family:ui-monospace,monospace; font-size:0.72rem; color:var(--ink-faint); letter-spacing:0.03em;}
+  .status-chip{
+    display:inline-flex; align-items:center; gap:0.4em; font-family:ui-monospace,monospace; font-size:0.68rem;
+    font-weight:700; letter-spacing:0.06em; text-transform:uppercase; padding:0.3em 0.7em; border-radius:2px;
+    background:var(--confirmed-soft); color:var(--confirmed);
+  }
+  .status-chip::before{content:''; width:6px; height:6px; border-radius:50%; background:var(--confirmed); display:inline-block;}
+
+  section{margin-bottom:3rem;}
+  .section-label{
+    font-family:ui-monospace,monospace; font-size:0.78rem; font-weight:700; letter-spacing:0.1em;
+    text-transform:uppercase; color:var(--accent-ink); margin-bottom:0.9rem; display:flex; align-items:baseline; gap:0.6rem;
+  }
+  .section-label .num{color:var(--ink-faint); font-weight:400;}
+  p{margin:0 0 1.1rem; max-width:64ch; color:var(--ink);}
+  p:last-child{margin-bottom:0;}
+
+  .callout{
+    background:var(--accent-soft); border-left:3px solid var(--accent); padding:1.4rem 1.6rem; border-radius:0 4px 4px 0;
+    margin-bottom:1rem;
+  }
+  .callout p{color:var(--accent-ink); max-width:none;}
+  .callout p:first-child{margin-top:0;}
+
+  .analogy-row{display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--line); border:1px solid var(--line); border-radius:4px; overflow:hidden; margin:1.4rem 0;}
+  .analogy-box{background:var(--surface); padding:1.25rem 1.4rem;}
+  .analogy-box .tag{font-family:ui-monospace,monospace; font-size:0.68rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:0.5rem;}
+  .analogy-box p{font-size:0.95rem; margin-bottom:0;}
+  @media (max-width:600px){.analogy-row{grid-template-columns:1fr;}}
+
+  .verdict-box{
+    border:1.5px solid var(--ink); border-radius:4px; padding:1.5rem 1.7rem; margin:1.4rem 0; background:var(--surface);
+  }
+  .verdict-box .eyebrow{margin-bottom:0.5rem;}
+  .verdict-box p{margin-bottom:0.8rem;}
+  .verdict-box p:last-child{margin-bottom:0;}
+
+  .test-list{display:flex; flex-direction:column; gap:0.9rem; margin:1.2rem 0;}
+  .test-item{border:1px solid var(--line); border-radius:4px; padding:1rem 1.25rem; background:var(--surface);}
+  .test-item .test-head{display:flex; align-items:baseline; gap:0.6rem; margin-bottom:0.4rem;}
+  .test-item .test-id{font-family:ui-monospace,monospace; font-size:0.72rem; font-weight:700; color:var(--accent-ink); background:var(--accent-soft); padding:0.15em 0.5em; border-radius:2px;}
+  .test-item .test-name{font-family:ui-monospace,monospace; font-weight:700; font-size:0.92rem;}
+  .test-item p{font-size:0.93rem; color:var(--ink-soft); margin-bottom:0.5rem;}
+  .test-item .test-result{font-size:0.93rem; color:var(--ink); margin-bottom:0;}
+  .test-item .test-result .mono{background:var(--paper); padding:0.1em 0.4em; border-radius:2px; font-size:0.85em;}
+
+  table.results{width:100%; border-collapse:collapse; margin:1.4rem 0; font-size:0.9rem;}
+  table.results th, table.results td{text-align:left; padding:0.7rem 0.8rem; border-bottom:1px solid var(--line); vertical-align:top;}
+  table.results th{font-family:ui-monospace,monospace; font-size:0.68rem; letter-spacing:0.06em; text-transform:uppercase; color:var(--ink-faint); font-weight:700;}
+  table.results td{font-family:Iowan Old Style, Georgia, serif;}
+  .verdict-pill{
+    display:inline-flex; align-items:center; gap:0.35em; font-family:ui-monospace,monospace; font-size:0.68rem;
+    font-weight:700; letter-spacing:0.04em; text-transform:uppercase; padding:0.22em 0.6em; border-radius:2px; white-space:nowrap;
+  }
+  .v-confirmed{background:var(--confirmed-soft); color:var(--confirmed);}
+  .v-reversed{background:var(--contradicted-soft); color:var(--contradicted);}
+  .v-corrected{background:var(--accent-soft); color:var(--accent-ink);}
+  .table-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch;}
+
+  .arch-compare{display:grid; grid-template-columns:1fr auto 1fr; gap:1.2rem; align-items:stretch; margin:1.5rem 0;}
+  .arch-box{border:1.5px solid var(--line-strong); border-radius:6px; padding:1.3rem 1.4rem; background:var(--surface);}
+  .arch-box.old{opacity:0.6;}
+  .arch-box.old .eyebrow{color:var(--contradicted);}
+  .arch-box.new{border-color:var(--confirmed); box-shadow:0 0 0 1px var(--confirmed);}
+  .arch-box.new .eyebrow{color:var(--confirmed);}
+  .arch-box ul{margin:0.6rem 0 0; padding-left:1.1rem; font-size:0.9rem;}
+  .arch-box li{margin-bottom:0.45rem;}
+  .arch-arrow{display:flex; align-items:center; justify-content:center; font-family:ui-monospace,monospace; font-size:1.3rem; color:var(--ink-faint);}
+  @media (max-width:640px){
+    .arch-compare{grid-template-columns:1fr;}
+    .arch-arrow{transform:rotate(90deg); padding:0.3rem 0;}
+  }
+
+  .num-highlight{font-family:ui-monospace,monospace; font-weight:700; color:var(--accent-ink); font-variant-numeric:tabular-nums;}
+
+  footer{margin-top:3.5rem; padding-top:1.5rem; border-top:1px solid var(--line-strong); font-family:ui-monospace,monospace; font-size:0.72rem; color:var(--ink-faint);}
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="eyebrow">Experiment report · DoKnow × Audos</div>
+    <h1>Can DoKnow actually search its own content?</h1>
+    <div class="masthead-sub">Two rounds of live testing against the real Audos platform, to answer one question before committing to an architecture: when DoKnow builds a course from your own uploaded material, can it actually find the right pieces of that material — on this platform, as it exists today?</div>
+    <div class="masthead-meta">
+      <span>2026-07-14 → 2026-07-16</span>
+      <span>·</span>
+      <span>12 tests, 3 rounds</span>
+      <span class="status-chip">Resolved — pipeline stays on Audos</span>
+    </div>
+  </header>
+
+  <section>
+    <div class="section-label"><span class="num">00</span> The short answer</div>
+    <div class="callout">
+      <p><strong>No, Audos doesn't have a dedicated semantic-search database — but it can produce and compare real embeddings today, through a path we almost missed.</strong> There's still no vector column type; pgvector sits on their server, present but switched off, only Audos's own engineers can turn it on. That part never changed. What changed is everything downstream of it: a real embedding is one authenticated call away via an undocumented gateway (<code>platform.integrations.proxy</code>), and comparing embeddings at real size costs single-digit milliseconds at DoKnow's scale.</p>
+      <p><strong>This report went through three drafts of "the answer," and the middle one was wrong twice.</strong> Round 2 said the search question was settled; it wasn't (the vectors were fake). Round 3's first pass said no embedding capability existed at all; that was also wrong — it asked the platform about a feature by guessing feature-shaped names, instead of asking what the platform actually has. See §06 for both corrections, told straight.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-label"><span class="num">01</span> What we were actually trying to do</div>
+    <p>DoKnow's core idea: you hand it a pile of your own content — videos, PDFs, articles you saved — on a topic. Instead of the AI just making up a course from its general knowledge, it builds one <em>from your actual material</em>. For that to work, the system has to be able to find the right piece of your content when it's writing each lesson — the three minutes of a video that actually cover "choosing a hive location," not a guess.</p>
+    <p>The standard way modern AI systems do this is called <strong>semantic search</strong>. Every piece of your content gets converted into a long list of numbers — an "embedding," a kind of fingerprint of what it <em>means</em>, not just what words it uses. Your question gets the same treatment. Then the system looks for the stored fingerprints that are mathematically closest to your question's fingerprint.</p>
+    <div class="analogy-row">
+      <div class="analogy-box">
+        <div class="tag">The fast way</div>
+        <p>A proper database index for embeddings is like a library catalog — it can jump almost straight to the closest matches without checking every book, even in a library with millions of books.</p>
+      </div>
+      <div class="analogy-box">
+        <div class="tag">The way we tested</div>
+        <p>Without that catalog, you check every single book yourself, one at a time, and keep the closest match. Slower in theory — but if your library is one course's worth of material, not millions of books, "slower" can still be instant.</p>
+      </div>
+    </div>
+    <p>Round 1 found the library catalog isn't available to us. Round 2 asked: does that actually matter, at the size of library DoKnow really has?</p>
+  </section>
+
+  <section>
+    <div class="section-label"><span class="num">02</span> The hypothesis</div>
+    <div class="verdict-box">
+      <div class="eyebrow">Stated before testing</div>
+      <p>If Audos cannot support fast content search and reliable delayed/background processing, DoKnow's content pipeline (upload → transcribe → search → generate) should be built as a separate service outside Audos, rather than entirely on the platform.</p>
+      <p>Two platform capabilities would decide it: whether embeddings can be searched fast enough without the missing catalog, and whether slow, multi-step work (transcribing a video, say) can run without the user's browser staying open the whole time.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-label"><span class="num">03</span> Round 1 — five baseline tests</div>
+    <p>Five direct questions against the live platform, each one a real server-side script written and run for this test, not a claim taken from documentation.</p>
+    <div class="test-list">
+      <div class="test-item">
+        <div class="test-head"><span class="test-id">1</span><span class="test-name">Vector storage</span></div>
+        <p>Try to create a database column built for storing an embedding.</p>
+        <p class="test-result">Rejected. The library-catalog tool (pgvector) is present on the server but not switched on for us, and we have no way to switch it on ourselves.</p>
+      </div>
+      <div class="test-item">
+        <div class="test-head"><span class="test-id">2</span><span class="test-name">Calling outside services</span></div>
+        <p>Can DoKnow's own code call an external service — a transcription API, an embedding API — from inside Audos?</p>
+        <p class="test-result">Yes, freely, no restrictions found.</p>
+      </div>
+      <div class="test-item">
+        <div class="test-head"><span class="test-id">3</span><span class="test-name">File upload</span></div>
+        <p>Upload a real file (like a source PDF) and find the actual size limit.</p>
+        <p class="test-result">Works, capped at just under <span class="num-highlight">50&nbsp;MB</span> per file.</p>
+      </div>
+      <div class="test-item">
+        <div class="test-head"><span class="test-id">4</span><span class="test-name">Scheduled / background work</span></div>
+        <p>Set something to run automatically later, the way you'd process a big upload without making the user wait.</p>
+        <p class="test-result">Created successfully, but never actually ran — checked <span class="num-highlight">2+ hours</span> after it was due, still hadn't fired.</p>
+      </div>
+      <div class="test-item">
+        <div class="test-head"><span class="test-id">5</span><span class="test-name">Built-in AI writing</span></div>
+        <p>Does Audos have its own AI text-generation available to call directly?</p>
+        <p class="test-result">Yes, works, real responses.</p>
+      </div>
+    </div>
+    <p>Two findings — <strong>#1</strong> and <strong>#4</strong> — looked like they'd rule out building the content pipeline on Audos at all. Before writing that up formally, we went back to close the gaps in exactly those two findings.</p>
+  </section>
+
+  <section>
+    <div class="section-label"><span class="num">04</span> Round 2 — closing the gaps</div>
+    <p>Four follow-up tests, aimed specifically at the two findings that mattered most.</p>
+    <div class="test-list">
+      <div class="test-item">
+        <div class="test-head"><span class="test-id">A</span><span class="test-name">Is "no catalog" actually slow, at our size?</span></div>
+        <p>Store 50, then 300, then 1,000 fake embeddings, and time how long a full one-by-one comparison actually takes — never measured in round 1, just assumed to be a problem.</p>
+        <p class="test-result">Sub-millisecond at every size tested — <span class="mono">0.02&nbsp;ms</span> at 50 rows, <span class="mono">0.12&nbsp;ms</span> at 300, <span class="mono">0.28&nbsp;ms</span> at 1,000. A single DoKnow course realistically has tens to a few hundred chunks of content — well inside the range we just measured as instant. <strong>Caveat:</strong> these were fake, 5-digit placeholder vectors, not real embeddings (typically 384–1,536+ digits) — the comparison math costs the same regardless of what the numbers mean, so row-count scaling is genuinely proven, but this alone doesn't prove real semantic search works, and dimensionality at real size was never directly measured.</p>
+      </div>
+      <div class="test-item">
+        <div class="test-head"><span class="test-id">B</span><span class="test-name">Is there any other useful tool available?</span></div>
+        <p>Round 1 only checked for the one specific catalog tool. Pull the complete list of everything available.</p>
+        <p class="test-result"><span class="num-highlight">70</span> tools available total; only one (a basic scripting tool, unrelated to search) is actually switched on. The embedding catalog tool is there, unswitched, exactly as round 1 found — plus a second, newer version of the same kind of tool, also unswitched, that round 1 didn't know to look for.</p>
+      </div>
+      <div class="test-item">
+        <div class="test-head"><span class="test-id">C</span><span class="test-name">Retest the scheduled/background work</span></div>
+        <p>Same test as round 1's #4, run again with a different timing setting, plus asking Audos's own assistant directly whether this is a known problem.</p>
+        <p class="test-result">This time it fired — on time, within 9 seconds of when it was due. The exact opposite of round 1's result, on the same platform. Audos's own assistant, asked directly, said plainly it has no record either way of whether this is a known issue.</p>
+      </div>
+      <div class="test-item">
+        <div class="test-head"><span class="test-id">D</span><span class="test-name">Does DoKnow itself have to wait for the schedule?</span></div>
+        <p>Instead of trusting the automatic scheduler, what if DoKnow's own app just does the waiting — calling the server five times in a row, one piece of a job at a time?</p>
+        <p class="test-result">5 out of 5 succeeded, no slowdowns, no blocks, no login issues between calls — about a second and a half each.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-label"><span class="num">05</span> Round 1 vs. round 2, side by side</div>
+    <div class="table-scroll">
+      <table class="results">
+        <thead>
+          <tr><th>Finding</th><th>Earlier round said</th><th>Later round found</th><th>Verdict</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Embedding search speed at real size</td>
+            <td>Round 2: sub-millisecond, but only tested with fake, low-dimension placeholders</td>
+            <td>Round 3: re-tested at real 1,536-number size — still ~0.003ms/row, still dominated by DB fetch, not math</td>
+            <td><span class="verdict-pill v-confirmed">Confirmed at real size</span></td>
+          </tr>
+          <tr>
+            <td>Producing a real embedding</td>
+            <td>Round 3 (first pass): guessed feature names, all came back unavailable — "no capability exists"</td>
+            <td>Round 3 (second pass): bare provider name works — <code>platform.integrations.proxy('openai', '/v1/embeddings', ...)</code> returns a real embedding, no API key of our own</td>
+            <td><span class="verdict-pill v-reversed">Corrected — capability exists</span></td>
+          </tr>
+          <tr>
+            <td>Embedding catalog tool itself</td>
+            <td>"Installed but not enabled"</td>
+            <td>Actually not installed at all — present in the catalog, never switched on; a second, newer version also found</td>
+            <td><span class="verdict-pill v-corrected">Corrected</span></td>
+          </tr>
+          <tr>
+            <td>Scheduled background work</td>
+            <td>Created a schedule, waited 2+ hours, never fired</td>
+            <td>Same kind of schedule fired correctly this time, in under 10 seconds</td>
+            <td><span class="verdict-pill v-reversed">Contradicted — unreliable, not broken</span></td>
+          </tr>
+          <tr>
+            <td>Working around the scheduler</td>
+            <td>Not tested</td>
+            <td>App calling itself repeatedly works perfectly, no friction</td>
+            <td><span class="verdict-pill v-confirmed">Confirmed usable</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-label"><span class="num">06</span> Round 3 — closing both gaps, and catching our own mistake</div>
+    <p>Round 3 ran two tests. The first re-measured the search benchmark with real 1,536-number vectors (OpenAI's actual embedding size) instead of the 5-number placeholders round 2 used. The math scaled exactly the way arithmetic says it should — roughly 300x more work per comparison — and it still didn't matter: about 0.003ms per row at 300&ndash;1,000 rows, a full 1,000-row scan in one to three milliseconds. The real cost was always fetching rows from the database, never comparing them once fetched. That question is closed.</p>
+    <p>The second test is the one worth slowing down for, because we got it wrong first and the wrong answer is the more useful story. We asked the platform's own runtime whether anything named <code>openai-embeddings</code>, <code>vector-search</code>, or <code>pinecone</code> existed. Nothing did — every guess came back <code>false</code>. We wrote that up as "no embedding capability exists," and for about an hour, that's what this report said.</p>
+    <p>It was wrong. We'd asked about a <em>feature</em> by guessing feature-shaped names, instead of asking what the platform actually has. What it has is a generic proxy — <code>platform.integrations.proxy(providerName, path, options)</code> — that forwards an authenticated request to a small allowlist of real providers: OpenAI, Stripe, Twilio, Heygen. The bare name <code>openai</code> is enough. Point it at <code>/v1/embeddings</code> with a model and some text, and it returns a real, 1,536-number embedding — using Audos's own API key, not ours.</p>
+    <div class="callout">
+      <p><strong>The lesson isn't just "Audos has more than it documents."</strong> It's that a negative capability test can be wrong about the platform when it's really only wrong about the names it tried. We caught this one because two overlapping round-3 tests contradicted each other — not a process to depend on going forward, but worth writing down as its own finding.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-label"><span class="num">07</span> What this means, plainly</div>
+    <p>All three questions this report opened with are now resolved. The scheduler is unreliable but doesn't matter — the app can pace its own background work, proven 5/5. Comparing embeddings at DoKnow's real scale, at real embedding size, costs single-digit milliseconds. And a real embedding is one authenticated proxy call away, with Audos supplying the API key.</p>
+    <p>None of that was true when this report first published. Getting here took two corrections, both told in place rather than quietly overwritten: round 2's fake-vector overclaim, and round 3's own guessed-names false negative. Both are left visible above, not smoothed over — the mistakes are as much a finding about this platform as the final answer is.</p>
+  </section>
+
+  <section>
+    <div class="section-label"><span class="num">08</span> The architecture — resolved</div>
+    <div class="arch-compare">
+      <div class="arch-box old">
+        <div class="eyebrow">Background processing</div>
+        <strong>Stays on Audos</strong>
+        <ul>
+          <li>The app paces its own slow, multi-step work by calling a hook repeatedly — proven reliable, 5/5, no friction</li>
+          <li>Doesn't depend on the platform's own scheduler, whose reliability is still unexplained</li>
+        </ul>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-box new">
+        <div class="eyebrow">Content search</div>
+        <strong>Stays on Audos</strong>
+        <ul>
+          <li>Embeddings generated via <code>platform.integrations.proxy('openai', '/v1/embeddings', ...)</code> — no API key of our own</li>
+          <li>Stored as JSON, compared brute-force — proven fast at real row counts <em>and</em> real embedding size</li>
+        </ul>
+      </div>
+    </div>
+    <p>Still worth formally asking Audos for: documentation of <code>platform.integrations</code> and <code>proxy()</code>, since it's currently discoverable only by introspecting the runtime and guessing the right call shape. Native <code>vector</code>/<code>vectorscale</code> column support is still worth requesting for headroom well past DoKnow's current scale. Neither is a reason to wait — the ingestion pipeline has no remaining architectural reason to live anywhere but Audos.</p>
+  </section>
+
+  <footer>
+    Source data: three rounds of disposable capability probes run directly against workspace-156396, no changes made to any real app. Full raw results in doknow-kb/audos/ACTIVITY-LOG.md and the Audos SDK docs.
+  </footer>
+
+</div>

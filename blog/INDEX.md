@@ -29,6 +29,7 @@ Source of truth for the underlying reference material: `docs/platform/` (capabil
 16. [Audos says fixed — one confirmed false, two in flight](0016-audos-says-fixed-three-real-checks-in-flight.md) — 2026-07-22 · field-notes
 17. [We ported Throughline onto Audos, then mostly left anyway](0017-we-ported-throughline-onto-audos-then-mostly-left.md) — 2026-04-20 · Throughline
 18. [Delegating a real website edit to Otto over the API, not the chat UI](0018-delegating-a-real-website-edit-to-otto-over-the-api.md) — 2026-07-08 · Throughline
+19. [Asking Otto what else Audos can do](0019-asking-otto-what-else-audos-can-do.md) — 2026-07-23 · DoKnow
 
 More entries land as either build continues. The rendered page is generated from these Markdown files
 by `scripts/build_blog.py` — see `HOW-TO-UPDATE.md` for the procedure. This index is a convenience for

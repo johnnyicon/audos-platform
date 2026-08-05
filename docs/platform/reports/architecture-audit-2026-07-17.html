@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Audos Architecture Audit — 2026-07-17</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1a1c1e;
+    --muted: #5b6068;
+    --rule: #e2e5e9;
+    --card: #f7f8fa;
+    --card-rule: #e6e9ee;
+    --accent: #1f6feb;
+    --crit-bg: #fbecec;
+    --crit-fg: #a11515;
+    --crit-rule: #f0c9c9;
+    --code-bg: #f0f2f5;
+    --code-fg: #2b2f36;
+    --strong: #101215;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161a;
+      --fg: #d7dbe0;
+      --muted: #969ca6;
+      --rule: #2a2e35;
+      --card: #1c1f25;
+      --card-rule: #2e333c;
+      --accent: #5c9dff;
+      --crit-bg: #331b1b;
+      --crit-fg: #ff9a9a;
+      --crit-rule: #4d2a2a;
+      --code-bg: #24272e;
+      --code-fg: #d0d4da;
+      --strong: #f2f4f7;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #ffffff; --fg: #1a1c1e; --muted: #5b6068; --rule: #e2e5e9; --card: #f7f8fa;
+    --card-rule: #e6e9ee; --accent: #1f6feb; --crit-bg: #fbecec; --crit-fg: #a11515;
+    --crit-rule: #f0c9c9; --code-bg: #f0f2f5; --code-fg: #2b2f36; --strong: #101215;
+  }
+  :root[data-theme="dark"] {
+    --bg: #14161a; --fg: #d7dbe0; --muted: #969ca6; --rule: #2a2e35; --card: #1c1f25;
+    --card-rule: #2e333c; --accent: #5c9dff; --crit-bg: #331b1b; --crit-fg: #ff9a9a;
+    --crit-rule: #4d2a2a; --code-bg: #24272e; --code-fg: #d0d4da; --strong: #f2f4f7;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    padding: 0;
+  }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 48px 24px 96px; }
+  header.doc { border-bottom: 2px solid var(--rule); padding-bottom: 26px; margin-bottom: 36px; }
+  h1 { font-size: 1.9rem; line-height: 1.25; margin: 0 0 12px; color: var(--strong); letter-spacing: -0.01em; }
+  .subtitle { color: var(--muted); font-size: 0.95rem; margin: 0; font-style: italic; }
+  h2 {
+    font-size: 1.4rem; margin: 52px 0 8px; padding-top: 20px; border-top: 1px solid var(--rule);
+    color: var(--strong); letter-spacing: -0.01em;
+  }
+  h2.nostroke { border-top: none; padding-top: 0; }
+  h3 { font-size: 1.13rem; margin: 34px 0 10px; color: var(--strong); }
+  h4 { font-size: 1.02rem; margin: 26px 0 8px; color: var(--strong); }
+  p { margin: 0 0 15px; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  strong { color: var(--strong); font-weight: 650; }
+  em { color: var(--fg); }
+  code {
+    background: var(--code-bg); color: var(--code-fg);
+    padding: 1px 5px; border-radius: 4px; font-size: 0.85em;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    word-break: break-word;
+  }
+  ul, ol { margin: 0 0 15px; padding-left: 22px; }
+  li { margin: 0 0 9px; }
+  blockquote {
+    margin: 0 0 20px; padding: 12px 18px; border-left: 3px solid var(--accent);
+    background: var(--card); border-radius: 0 6px 6px 0; color: var(--fg); font-size: 0.95rem;
+  }
+  blockquote p:last-child { margin-bottom: 0; }
+  .verdict {
+    background: var(--card); border: 1px solid var(--card-rule);
+    border-radius: 10px; padding: 22px 24px; margin: 24px 0 8px;
+  }
+  .verdict p:last-child { margin-bottom: 0; }
+  .gap {
+    border: 1px solid var(--card-rule); border-radius: 10px;
+    padding: 4px 24px 18px; margin: 22px 0; background: var(--card);
+  }
+  .gap.critical { border-color: var(--crit-rule); background: var(--crit-bg); }
+  .gap h3 { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .rank {
+    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 3px 9px; border-radius: 20px; background: var(--rule); color: var(--muted);
+    white-space: nowrap; align-self: center;
+  }
+  .gap.critical .rank { background: var(--crit-fg); color: var(--bg); }
+  .gap .label { flex: 1; min-width: 200px; }
+  .meta-line { font-size: 0.9rem; margin: 10px 0 4px; }
+  .meta-line .k { color: var(--muted); font-weight: 650; }
+  .toc {
+    background: var(--card); border: 1px solid var(--card-rule); border-radius: 10px;
+    padding: 18px 24px; margin: 0 0 20px; font-size: 0.92rem;
+  }
+  .toc ol { margin: 6px 0 0; }
+  .toc li { margin-bottom: 5px; }
+  .footer-note {
+    margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--rule);
+    color: var(--muted); font-size: 0.85rem;
+  }
+  .pill {
+    display: inline-block; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.05em;
+    text-transform: uppercase; color: var(--crit-fg); border: 1px solid var(--crit-rule);
+    padding: 1px 7px; border-radius: 5px; vertical-align: middle;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="doc">
+  <h1>Audos Architecture Audit — Is it built for hardcore agentic app development?</h1>
+  <p class="subtitle">Red-team architectural audit, 2026-07-17. Synthesis across ~two weeks of hands-on
+  building (DoKnow, field-notes) plus the earlier Throughline-era findings preserved in this repo. Every
+  claim is grounded in a cited finding already in <code>audos-platform</code> — this report does not
+  introduce new tests, it reads across the existing ones to find the small number of root causes behind
+  them.</p>
+</header>
+
+<div class="toc">
+  <strong>Contents</strong>
+  <ol>
+    <li><a href="#verdict">Executive verdict</a></li>
+    <li><a href="#method">Methodology</a></li>
+    <li><a href="#gaps">Top 10 architectural gaps, ranked by leverage</a></li>
+    <li><a href="#working">What's actually working well</a></li>
+    <li><a href="#closing">Closing verdict</a></li>
+  </ol>
+</div>
+
+<h2 id="verdict" class="nostroke">1. Executive verdict</h2>
+
+<blockquote><p><strong>Scope, timing, and an important migration caveat.</strong> This audit evaluates the
+build path used throughout DoKnow's and field-notes' development over roughly two weeks: the Otto chat
+interface plus the <strong>Cursor-backed</strong> Task dispatch that does the actual building. Audos ships
+fast — its own capability doc opens by warning that "these limits move" — so every finding here is a
+point-in-time observation, not a permanent verdict, and a few older reference points it draws on are flagged
+inline as unverified this cycle.</p>
+<p><strong>The migration caveat matters most.</strong> Audos also ships a newer editing surface,
+<strong>Audos Code</strong> (Beta 0.3.0, <code>audos.com/portfolio/code</code>), which we drove live for
+~25 minutes. It runs on a <strong>different backend entirely — Anthropic's Claude Code, not Cursor</strong>
+(its model visualizer routes through <code>claude-opus-4-8</code>; its picker lists Opus 4.8 and Fable 5,
+both labeled "Claude Code / Anthropic"). Audos appears to be <strong>mid-migration</strong> from the
+Cursor-backed pipeline this audit analyzed to a Claude-Code-backed one. Several findings below are therefore
+<strong>legacy-path-specific and may not apply to where Audos is heading</strong> — we flag each inline: the
+report-truncation root cause (J-2, Cursor's stream), the shared-Cursor-account <code>usage_limit_exceeded</code>
+(Gap 1 / <code>bugs/0006</code>), and the <code>cursorModel</code>-pinning method (<code>experiments/0004</code>).
+We did not fully evaluate Audos Code — a complete pass on it is worth doing before treating this as the whole
+picture — but where it materially changes a finding (Gaps 1, 2, 9), we say so.</p></blockquote>
+
+<div class="verdict">
+<p><strong>As currently architected — and we think this is worth stating directly rather than hedging — Audos
+does not yet support hardcore agentic app development the way a terminal-attached coding agent (Claude Code,
+Codex) does.</strong> But the honest verdict has a sharp, load-bearing qualification, and the qualification
+is the most useful thing in this report: <strong>the gap is not in what Audos can <em>run</em> — it's in how
+Audos is <em>built on</em>.</strong></p>
+</div>
+
+<p>Those are two different questions, and the evidence separates them cleanly. On the "what can it run"
+question, Audos does far better than its reputation: the team's real frontend stack survives the build
+pipeline (react-query, GSAP, Radix, three.js all render — <code>experiments/0001</code>), a hand-authored
+UI ports in verbatim at high fidelity (<code>experiments/0003</code>, <code>0006</code>), native OpenAI
+embedding <em>generation</em> is available with no API key through an undocumented gateway
+(<code>experiments/0012</code>), a hand-rolled brute-force similarity scan over JSON-stored vectors is fast
+enough at DoKnow's small scale to stand in for the vector search the platform doesn't actually have
+(<code>experiments/0013</code>, <code>bugs/0015</code>), and a full-screen app genuinely escapes the chat
+shell from the first paint (<code>experiments/0017</code>). A real product — DoKnow — is live on it. The runtime is more
+capable than the docs claim, not less.</p>
+
+<p>The failure is in the <strong>development loop</strong>, and it is structural, not a pile of bugs. Every
+recurring shape of pain in this repo traces back to a single architectural stance: <strong>the person
+building — or the agent building on their behalf — is kept one full indirection away from the actual
+system.</strong> You don't touch the filesystem; you ask Otto, who dispatches a Cursor background agent,
+which acts inside a sandbox, whose success is then adjudicated by an Audos-side publish/gate step the agent
+can't see, and you observe the result through partial APIs that sometimes report the wrong thing with a
+200 OK. At every layer we touched, the authoritative truth tended to live somewhere you couldn't directly
+read. That is the near-inverse of a terminal-attached coding agent (Claude Code, Codex), whose entire power comes from the
+<em>absence</em> of that indirection: it edits real files under version control, runs a real shell, streams
+full unredacted output as it happens, inspects live state directly, and never has to guess whether a change
+was saved because it can just look.</p>
+
+<p>This is why the repo's own operating discipline had to become "never trust a job's self-report — always
+independently verify the live result" (<code>bugs/0007</code>, <code>docs/platform/19</code>), a rule that
+by the team's own measurement "roughly doubles the cost of every fix cycle." That doubled cost is not a
+quirk. It is the tax the indirection imposes, paid on essentially every change we made, until the indirection
+is removed. A terminal agent pays it far less often because it rarely loses sight of ground truth in the first
+place.</p>
+
+<p>So the qualified verdict, earned: <strong>Audos is a genuinely good no-code platform for a founder whose
+agent operates the platform conversationally on their behalf. It is not yet a substrate a developer or coding
+agent can operate directly, and in our two weeks no amount of prompt discipline closed that gap — it looked
+structural, not a matter of usage.</strong> The rest of this report is the 80/20: the handful of root causes that produce most of
+the pain, ranked by how much real capability their fix would unlock.</p>
+
+<h2 id="method">2. Methodology</h2>
+
+<p><strong>What was reviewed.</strong> The full <code>audos-platform</code> evidence corpus: 19
+hypothesis-driven experiments (<code>blog/experiments/0001–0019</code>), 23 confirmed bugs
+(<code>blog/bugs/0001–0023</code>), 9 feature requests (<code>blog/feature-requests/0001–0009</code>), 13
+narrative blog entries (<code>blog/0001–0013</code>), the capability and operational-model reference docs
+(<code>docs/platform/01–25</code>), the terse issue index (<code>BACKLOG.md</code>), the change history
+(<code>CHANGELOG.md</code>), the field-notes build log (<code>field-notes/ACTIVITY-LOG.md</code>), and
+three dated raw DoKnow activity-log snapshots (<code>~/doknow-kb/audos/archive/*</code>).</p>
+
+<p><strong>How much evidence exists, and how good it is.</strong> This is an unusually strong corpus to
+audit against. The experiments are written as falsifiable claims with method and result; the bugs carry
+reproduction detail (md5 hashes, exact error strings, job IDs); and — most valuably for an audit — the
+record contains multiple <em>honest self-corrections</em> that are cited here as strengths, not hidden: a
+"verified" course-data fix that failed on live re-test (<code>docs/platform/19</code>), an embedding
+capability first reported absent then found present (<code>experiments/0011</code> → <code>0012</code>), a
+file-durability data-loss bug filed with Audos then retracted the same day (<code>bugs/0022</code>), and —
+notably — that retraction itself later flagged as under-verified because the intermediate state was never
+independently checked and is now unrecoverable (<code>field-notes/ACTIVITY-LOG.md</code>, 21:10 entry). A
+corpus that catches itself twice recursively is one you can lean on.</p>
+
+<p><strong>Real limits on what can be concluded.</strong> Several findings are genuinely open and are
+treated as such below: the <code>db.rawQuery</code> leading-keyword bypass (<code>bugs/0021</code>) was
+never confirmed to actually execute a blocked write and must not be read as a proven exploit; the scheduler
+is "inconsistent," not "broken" — one hourly schedule never fired, one daily schedule fired within 9
+seconds, root cause unknown (<code>experiments/0009</code>); the cross-app "cards due" discrepancy
+(<code>BACKLOG.md #9</code>) is an un-root-caused <em>possible</em> isolation bug on thin evidence; and the
+corpus spans more than one workspace and product, so a handful of Throughline-era observations
+(2026-03/04) corroborate rather than directly witness the DoKnow findings. Where evidence is thin or
+contradictory, this report says so rather than rounding up.</p>
+
+<p><strong>One framing decision worth stating.</strong> This audit ranks by <em>leverage</em> — which
+fixes unlock the most real capability — not by how many findings or how much narrative each topic
+generated. That deliberately <em>demotes</em> the chat-shell cluster (bugs <code>0001–0004</code>, by far
+the most-written-about topic in the repo) to mid-list, because the evidence shows it is effectively
+<strong>solved by inheritance</strong>: the shell fixes live in a workspace-shared <code>Desktop.tsx</code>,
+so once fixed they propagate to every app for free (<code>experiments/0006</code>, <code>0017</code>). And
+it <em>promotes</em> the data/schema layer, which has fewer findings but harder, unworked-around ones.
+Counting bugs would invert both of those; leverage is the right axis.</p>
+
+<h2 id="gaps">3. Top 10 architectural gaps, ranked by leverage</h2>
+
+<blockquote>The <strong>top 3</strong> are flagged as most critical. Gaps 1 and 2 are two faces of one
+meta-cause — no direct channel to ground truth — but are split because their fixes are different.
+Everything below gap 3 is real but either has a working workaround, is lower-frequency, or is downstream of
+the top 3.</blockquote>
+
+<div class="gap critical">
+<h3><span class="rank">Gap 1 · Critical</span> <span class="label">You can't trust the build agent's
+done-signal — and in the legacy path, can't watch or stop it either</span></h3>
+
+<p><strong>The highest-leverage problem we found — and the one part of it that survives Audos's backend
+migration.</strong> Every structural change — a table, a hook, an app edit — is a natural-language job handed
+to Otto, which (on the Cursor-backed path) dispatches a background agent and returns almost nothing until
+it's over. The newer Audos Code surface fixes much of the <em>visibility</em> half of this (below); what it
+does <strong>not</strong> fix — and what we reproduced live in that newer surface the same day — is the
+<em>trust</em> half: a confident "done" that isn't true.</p>
+
+<p class="meta-line"><span class="k">Pattern of evidence, across many unrelated findings:</span></p>
+<ul>
+  <li><strong>Self-reports don't match reality.</strong> Jobs reported "complete," "published," even
+  explicit "verified — three lesson rows inserted with valid JSON arrays," and the live app reproduced the
+  <em>identical</em> failure on re-test — twice, worded the same both times (<code>bugs/0007</code>,
+  <code>docs/platform/19</code>). Otto's own read: an <strong>authority-boundary gap</strong> — the agent
+  sincerely reports what it did in its sandbox, but the steps that decide ground truth (confirmation gates,
+  publish/recompile) are enforced Audos-side, outside the agent's visibility
+  (<code>docs/platform/20</code>).</li>
+  <li><strong>Reports truncate at the critical line.</strong> Completion summaries cut off mid-sentence at
+  least eight times, "almost always at the exact critical detail" (<code>bugs/0008</code>). Root cause is
+  upstream (Cursor's API truncates its own stream), but <em>choosing to build the dev loop on that
+  black-box backend is itself the architectural decision</em> — Audos could persist the full transcript and
+  doesn't (<code>feature-requests/0002</code>). <em>(Legacy-path-specific: this attribution is to Cursor;
+  Audos Code runs on a different backend — see the migration note — so it may not carry forward.)</em></li>
+  <li><strong>No progress, no cancel, no hang-detection.</strong> A job sat "Running" 20+ minutes across 12
+  polls with no way to see inside or abort; it wasn't hung — it ran 45m01s doing 67+ real actions — but "a
+  real hang is indistinguishable from slow-but-working until it finishes or fails" (<code>bugs/0018</code>,
+  <code>BACKLOG.md #10</code>).</li>
+  <li><strong>Silent serialization and shared-account failures.</strong> A second same-scope job queued
+  invisibly with no queue signal (<code>bugs/0018</code>); jobs instant-fail with
+  <code>usage_limit_exceeded</code> against <em>Audos's own</em> shared Cursor account
+  (<code>bugs/0006</code>). <em>(Also legacy-path-specific: in Audos Code, Fable 5 showed a transparent "0%
+  of daily budget used" quota instead of the opaque shared-account failure — this one looks already-addressed
+  on the newer backend.)</em></li>
+  <li><strong>The entire dispatch-then-poll SOP</strong> (<code>docs/platform/23</code>) exists
+  <em>only</em> because there is no streaming: fire in the background, poll every 90s for up to 30 minutes,
+  then verify live anyway because "Complete" isn't evidence of correctness.</li>
+</ul>
+<p><strong>A newer surface fixes the visibility half — on a different backend — but not the trust half.
+Verified live, 2026-07-17 (~25 min).</strong> Audos Code is a genuine step forward on <em>observability</em>,
+and deserves credit: a Settings toggle ("Assistant output — show token-by-token output while a response is in
+progress") is <strong>on by default</strong>, and during our edit the left panel streamed a live, typed
+step-log — <code>Command run</code>, <code>Tool call</code>, <code>File change</code>, a running duration
+counter, then a specific completion line. That falsifies "no live output" as a blanket claim; there is a real
+live channel here. It also runs on a <strong>different backend</strong>: the model visualizer routed through
+<code>claude-opus-4-8</code>, and the picker offered Opus 4.8 and Fable 5, both labeled "Claude Code /
+Anthropic" — i.e. Audos is moving off Cursor onto Anthropic's Claude Code. <strong>But the <em>trust</em>
+half was unchanged, which is the point:</strong> asked to change a headline's period to an exclamation point,
+it streamed real steps, ran 29s, and reported, specifically and confidently, <code>"Done. The headline now
+reads 'Stop saving. Start knowing!' — the period is now an exclamation point. Nothing else was
+touched."</code>, with an "Up to date" status. The rendered preview still showed a period — confirmed by
+zoom, and again after a manual refresh. Same failure mode as <code>bugs/0007</code> — reproduced on the
+<em>new</em> backend, in the <em>more observable</em> UI. That's what makes it the strongest evidence in this
+report: the self-report/reality mismatch is not an artifact of Cursor or of poor tooling; it survived both
+the backend swap and the observability upgrade. <em>(Maturity note, in the same honest spirit as the rest of
+this corpus: Audos Code is young — across two sessions totaling ~40 minutes on 2026-07-17 it failed to load
+four times, "Audos Code could not be loaded. Try again" or a stuck traffic spinner — a reproducible
+reliability signal, not a one-off.)</em></p>
+<p class="meta-line"><span class="k">Root cause:</span> in the dispatch path the agent's output is a delayed,
+truncated, unstreamable summary of work done in a sandbox whose success the agent itself can't fully confirm
+— you can't watch, steer, or stop it. The Audos Code surface adds live visibility during the run, but (as
+above) not yet a done-signal you can trust without checking the rendered result yourself.</p>
+<p class="meta-line"><span class="k">Fixed looks like:</span> live-streamed output; a cancel control;
+untruncated transcripts via the launching channel; and the deepest fix — surfacing the platform-side
+gate/publish state back to the job so it can honestly say "my change survived publish." The repo's own #1
+request (<code>feature-requests/0001</code>), a mandatory post-build smoke check, is the minimum viable
+version.</p>
+<p class="meta-line"><span class="k">Terminal agent avoids this by construction:</span> it <em>is</em> the
+process. Output streams live, Ctrl-C cancels, nothing truncates, and "did it work" is answered by running
+the thing and looking — there is no sandbox/ground-truth split to bridge.</p>
+</div>
+
+<div class="gap critical">
+<h3><span class="rank">Gap 2 · Critical</span> <span class="label">No authoritative view of actual state:
+"built," "published," and "live" are three different things you can't tell apart</span></h3>
+
+<p><strong>The problem that caused the single largest self-correction in the corpus.</strong> There is no
+reliable way to ask the platform "what actually exists right now," and the most obvious API answers the
+wrong question.</p>
+
+<p class="meta-line"><span class="k">Pattern of evidence:</span></p>
+<ul>
+  <li><strong>The false data-loss saga.</strong> A ~2-hour job built a full working app, then crashed
+  before reporting. <code>GET /api/space/{id}/files</code> returned <code>{"files": []}</code>, read as
+  "the work was discarded" — filed with Audos, escalated to an engineer. It was wrong: <strong>that
+  endpoint only ever reflects the <em>published</em> bundle, never draft work.</strong> The app was in Draft
+  the whole time; it took the Preview panel's Draft-vs-Live toggle by hand to see it
+  (<code>bugs/0022</code>). "Nothing built" and "built but unpublished" are indistinguishable through the
+  API. And the trust problem recursed one level deeper: the retraction <em>itself</em> later proved to rest
+  on an unverified job self-report — a second job's claim that the first job's work "was already there, not
+  rebuilt," never independently checked and now unrecoverable. It is arguably the sharpest single
+  illustration of Gap 1 in the corpus: ground truth was so hard to reach directly that even a careful
+  correction ended up trusting an agent's word about state nobody had independently observed.</li>
+  <li><strong>"Published: yes" has meant three different things:</strong> actually live; config-written but
+  bundle not recompiled; or blocked because a concurrent same-scope job silently held the publish
+  (<code>bugs/0005</code>, <code>feature-requests/0003</code>).</li>
+  <li><strong>Stale served bundles.</strong> <code>list_apps</code> shows an app published while the served
+  bundle is stale — missing from the dock, route 404ing (<code>bugs/0005</code>).</li>
+  <li><strong>The deploy pipeline is a 15–30 minute unobservable window</strong> with silently-dropped
+  webhooks: "push to live — 15–30 min… Occasionally a push webhook is silently dropped by Audos — no error,
+  no indication," remediable only by a manual "Sync from GitHub" click (<code>docs/platform/16</code>).</li>
+  <li><strong>Cache-busting is folklore.</strong> A manual <code>?_cb=</code> is sometimes needed after a
+  <code>Desktop.tsx</code> publish; the platform emits <code>?_cb=…&amp;cdn=fallback</code> itself under
+  undocumented conditions (<code>feature-requests/0004</code>).</li>
+</ul>
+<p class="meta-line"><span class="k">Root cause:</span> the system's real state (draft bundle, published
+bundle, served bundle, config, file tree) is scattered across surfaces that don't agree, and the one
+programmatic read path silently reports only one of them.</p>
+<p class="meta-line"><span class="k">Partial credit, newer surface (verified live 2026-07-17):</span> Audos
+Code makes the draft/live distinction genuinely clearer for anyone working in that UI — "Preview" shows the
+inline draft, while "Live" opens a separate tab at an explicit, human-readable URL with an <code>?env=live</code>
+query param (<code>audos.com/site/{id}?env=live#…</code>). That's a real improvement over the old "<code>GET
+/files</code> only ever shows published" ambiguity — for the click-through path. The API-level opacity is
+presumably unchanged for anyone integrating programmatically rather than through this UI, which is who the
+fix below is for.</p>
+<p class="meta-line"><span class="k">Fixed looks like:</span> a publish-status endpoint returning the
+served bundle hash + timestamp; a state API that distinguishes draft from published; automatic cache
+invalidation on publish — something an external agent can poll without a browser.</p>
+<p class="meta-line"><span class="k">Terminal agent avoids this:</span> <code>git status</code>,
+<code>git log</code>, <code>ls</code>, <code>cat</code>. There is exactly one authoritative answer to
+"what's here and is it saved," and it's free to read.</p>
+</div>
+
+<div class="gap critical">
+<h3><span class="rank">Gap 3 · Critical</span> <span class="label">The data/schema layer is
+non-transactional, undocumented, and reachable only indirectly — and its one real escape hatch is itself
+broken</span></h3>
+
+<p><strong>The gap with the fewest findings but the least workaround headroom</strong>, which is why it
+ranks top-3 despite the shell cluster having 4× the write-ups. Iterating on a schema — the most ordinary
+developer task — was, in our experience, unsafe in places and in others blocked outright.</p>
+
+<p class="meta-line"><span class="k">Pattern of evidence:</span></p>
+<ul>
+  <li><strong>Failed DDL doesn't roll back, and there's no cleanup tool.</strong> A <code>CREATE TABLE</code>
+  with an unsatisfiable FK left a real, catalog-unregistered <code>app_site_sessions</code> table behind;
+  every retry then failed <code>relation already exists</code>, the orphan invisible to
+  <code>db_list_tables</code> yet physically blocking the name, with no <code>drop_table</code> tool.
+  Resolution: give up and use <code>site_sessions_v2</code> — the original name stays blocked until Audos
+  clears it server-side (<code>bugs/0019</code>, <code>BACKLOG.md #15</code>).</li>
+  <li><strong>The schema you ask for is not the schema you get, silently.</strong> <code>id</code> is always
+  a forced <code>serial</code> integer; <code>id: uuid</code> is rejected; every table silently gains
+  <code>session_id</code> and <code>updated_at</code> — none of it documented (<code>bugs/0020</code>). This
+  <em>caused</em> the orphan above: a uuid FK can't reference a serial PK.</li>
+  <li><strong>No native vector support, and no way we could find to enable it.</strong> <code>vector(N)</code>
+  is rejected; raw SQL is <code>SELECT</code>/<code>WITH</code>/<code>EXPLAIN</code>-only, so <code>CREATE
+  EXTENSION vector</code> can't be run from the workspace — pgvector is <em>available in the catalog but not
+  installed</em> (<code>installed_version: null</code>, absent from <code>pg_extension</code>), with no
+  owner-accessible path to install it (<code>bugs/0015</code>; the corpus itself corrected an earlier
+  "installed but unenabled" misread — it was never installed).</li>
+  <li><strong>The read-only SQL guard may be shallow.</strong> Evidence the validator checks only the
+  leading keyword, so <code>SELECT 1; DROP …</code> might slip through — <em>explicitly unconfirmed</em>,
+  the probe was abandoned and likely didn't succeed; flagged for Audos to verify, not asserted as an
+  exploit (<code>bugs/0021</code>).</li>
+  <li><strong>A recurring three-time serialization footgun.</strong> Every first write to a
+  <code>json</code>/<code>jsonb</code> column failed with <code>invalid input syntax for type json</code>
+  because the agent sent a raw object — three times, two unrelated apps (<code>docs/platform/19</code>).</li>
+  <li><strong>The one direct escape hatch is 0-for-3 on even <em>reaching</em> it this cycle.</strong>
+  Direct scoped Postgres (full DDL, transactions, <code>DROP</code> — everything the above needs) would be
+  exactly the right answer, and <code>docs/platform/13</code> reports it working <em>in April, in
+  Throughline's workspace</em> — not re-verified this cycle, so "direct SQL is full-powered once you have
+  credentials" is an inference, not a current fact. And the credential-generation step in front of it has now
+  failed <strong>three different ways, zero successes, across three workspaces</strong>: Throughline (April)
+  reportedly got "Workspace not found"; field-notes (2026-07-16) gets a <code>409 "Use regenerate to rotate
+  them"</code> on every click with <strong>no regenerate/view control anywhere in the UI</strong>,
+  <code>GET</code> → 401, and Otto confirming no view path (<code>bugs/0023</code>,
+  <code>experiments/0019</code>); and DoKnow's own workspace (2026-07-17) returned a <strong>silent
+  <code>404</code> with no error at all</strong> — worse than field-notes' visible failure. So this isn't "a
+  working escape hatch with a broken door" — on current evidence it's <em>a documented intention nobody has
+  reached this cycle</em>, which if anything makes the D-5 credential fix higher priority, not lower.
+  <strong>Scope this correctly, though:</strong> it blocks the <em>direct psql</em> path only — database
+  <em>writes</em> work fine through Audos Code's DB-write layer (verified live 2026-07-17; see "What's
+  actually working well"). So the fix restores a <em>convenience and a standard interface</em>, not the only
+  way to get data in.</li>
+</ul>
+<p class="meta-line"><span class="k">Root cause:</span> schema operations run through a non-transactional,
+undocumented, agent-mediated API that mutates structure in ways it doesn't disclose and can't undo — and
+the direct-database path that would sidestep all of it is gated behind a credential flow that doesn't
+survive first contact.</p>
+<p class="meta-line"><span class="k">Fixed looks like:</span> atomic DDL (or at minimum a
+<code>drop_table</code>/cleanup tool); documented, honored PK/column behavior; and likely the highest
+leverage of the three — <strong>fix the one-shot credential recovery</strong>. A small UI-wiring fix (the
+backend's own 409 references a regenerate action) that would hand developers a real <code>psql</code>
+connection. One caveat we want to be honest about: the claim that direct SQL is then <em>full-powered</em>
+rests on the April Throughline observation above, not a this-cycle re-verification — so this fix's payoff is
+our best-supported inference, not a proven one. If it holds, most of the orphaned-table, serial-id,
+vector-enablement, and raw-SQL friction eases the moment direct, transactional database access is reliably
+available.</p>
+<p class="meta-line"><span class="k">Terminal agent avoids this:</span> migrations run inside a transaction
+that rolls back on failure, <code>DROP</code>s a bad table, and connects with <code>psql</code> — schema
+iteration is safe, reversible, and direct by default.</p>
+</div>
+
+<div class="gap">
+<h3><span class="rank">Gap 4</span> <span class="label">An imposed chat-shell UI, escaped only by a manual
+checklist, over a workspace-shared mutable file</span></h3>
+<p>The default signed-in surface is a ChatGPT-style shell; a normal full-screen app requires escaping it
+via a 4-step checklist — full-screen landing config, deep-link resolution, a popup-not-teardown chat
+affordance, and a lazy-<code>useState</code> fix for a flash-of-old-shell FOUC (<code>bugs/0001–0004</code>,
+<code>docs/platform/22</code>). <strong>Lower leverage than it looks</strong>, for two reasons the evidence
+establishes. First, it's largely <em>solved by inheritance</em>: the fixes live in a workspace-shared
+<code>Desktop.tsx</code>, so once fixed they propagate for free — a zero-briefing baseline app came out
+clean (<code>experiments/0006</code>), and a fresh workspace was born full-screen from a single briefing
+(<code>experiments/0017</code>). Second, that same sharing is the real residual risk:
+<code>Desktop.tsx</code> is <strong>workspace-shared and mutable</strong>, so a shell change has blast
+radius across every app — and this <em>confounded one of the team's own experiments</em>
+(<code>experiments/0005</code>). App-level isolation boundaries are genuinely murky (the un-root-caused
+cross-app "cards due" discrepancy, <code>BACKLOG.md #9</code>, is a thin but live hint).
+<span class="k">Fixed looks like:</span> a first-class full-screen mode needing no shell surgery, and
+per-app isolation.</p>
+</div>
+
+<div class="gap">
+<h3><span class="rank">Gap 5</span> <span class="label">No reliable unattended/background execution
+primitive</span></h3>
+<p>Recurring scheduled hooks fire inconsistently: two hourly schedules never fired (2h07m and 20m overdue,
+<code>runCount: 0</code>), while a later daily schedule fired within ~9s — same mechanism, opposite result,
+root cause unknown and unknown to Otto too (<code>bugs/0016</code>, <code>experiments/0009</code>). One-time
+hook scheduling doesn't exist; there's no dispatcher log or status to diagnose from. <strong>Partially
+de-risked</strong> by a proven workaround — client-orchestrated sequential hook calls, 5/5 clean
+(<code>experiments/0010</code>) — which covers anything that can keep a client open, so this ranks below the
+top 3. But genuinely unattended work has no reliable path, and with the ~5–10 min hook ceiling, anything
+slow-and-headless runs off-platform. <span class="k">Fixed looks like:</span> a scheduler with observable
+per-run status and a root-caused firing guarantee.</p>
+</div>
+
+<div class="gap">
+<h3><span class="rank">Gap 6</span> <span class="label">A constrained, non-standard runtime, with no opt-out
+we could find</span></h3>
+<p>Single file per app, server-side ESBuild, CDN/importmap resolution — no <code>npm install</code>, no
+Vite, React 18 only, hash-based in-memory routing only (no real browser URL ownership), and hooks run in a
+~30s / ~64KB sandbox with no <code>fs</code>, <code>require</code>, <code>Buffer</code>,
+<code>setTimeout</code>, or <code>URLSearchParams</code>. <em>(Several of these specifics are sourced from
+March–April reference docs — <code>docs/platform/07</code>, <code>08</code>, <code>10</code>, all 2026-03-31,
+and <code>16</code>, 2026-04-22 — and weren't re-verified line-by-line this cycle; the single-file model and
+the dual-React trap below were corroborated by observed behavior.)</em> The importmap has a genuinely
+dangerous edge — user-added packages don't inherit the React 18 pin, silently loading two React copies and
+blanking the page (React error #31), catchable only by inspecting network resources
+(<code>docs/platform/16</code>). Much of this is livable (the library probe shows the real stack mostly
+works, <code>experiments/0001</code>), which is why it's mid-list — but we found no opt-out, and
+<code>feature-requests/0008</code> asks precisely for an opt-in modern stack.
+<span class="k">Fixed looks like:</span> an opt-in lane for current React, real dependency resolution, and
+real URL ownership, without disturbing the no-code default.</p>
+</div>
+
+<div class="gap">
+<h3><span class="rank">Gap 7</span> <span class="label">Undocumented surface forces
+discovery-by-trial-and-error, and the probes give false negatives</span></h3>
+<p>Core capabilities are undocumented and discoverable only by guessing the call shape. The working
+embeddings path — <code>platform.integrations.proxy('openai', '/v1/embeddings', …)</code> — is in no docs;
+its provider allowlist was "read from the error message"; and the first probe <strong>reported it
+absent</strong> because it swept <code>isAvailable()</code> with guessed feature-names instead of the bare
+provider name (<code>experiments/0011</code> → <code>0012</code>). The <code>cdnDependencies</code> allowlist
+can't be read even by Otto and had to be reverse-engineered with a throwaway probe
+(<code>feature-requests/0006</code>, <code>0009</code>). This gap is an <strong>amplifier of every other
+gap</strong>: because you can't read the platform's code and can't trust self-reports, in this evaluation
+everything had to be probed empirically — and empirical probes of an undocumented surface produce confident
+false negatives.
+<span class="k">Fixed looks like:</span> documenting <code>platform.integrations</code>/<code>proxy()</code>,
+the globals, and the <code>cdnDependencies</code> allowlist; plus read access to your own workspace's
+platform files.</p>
+</div>
+
+<div class="gap">
+<h3><span class="rank">Gap 8</span> <span class="label">Silent-success failure modes: 200 OK with the wrong
+content</span></h3>
+<p>A distinct, dangerous class: operations that fail while reporting success. <code>/api/upload/image</code>
+returns <code>HTTP 200 {"success":true}</code> with a plausible <code>.png</code> URL while
+<strong>corrupting</strong> any non-image payload (md5-verified: 3,031 bytes in, 3,050 bytes of bit-shifted
+garbage out) — a real PDF silently mangled (<code>bugs/0017</code>). <code>proxy()</code> called with an
+options <em>object</em> instead of a JSON <em>string</em> body silently returns the platform's own HTML
+index page with a 200 (<code>experiments/0012</code>). "Published: yes" that isn't live (Gap 2) is the same
+disease. The through-line: <strong>a success response on this platform has repeatedly not meant success —
+treat a 200 as unverified until you check the content</strong> — the doubled-verification tax, in miniature.
+<span class="k">Fixed looks like:</span> honest status codes and content-type validation.</p>
+</div>
+
+<div class="gap">
+<h3><span class="rank">Gap 9</span> <span class="label">No first-class programmatic build/write path — only
+an agent or a slow git pipeline</span></h3>
+<p>There is no <em>raw</em> file-level editing in the app layer — you can't hand-type code into a file. The
+March-era docs put it flatly ("Can't edit React code directly, must use Otto" — <code>docs/platform/02</code>,
+<code>03</code>, both 2026-03-31), and the current nuance sharpens rather than overturns it: Audos Code's
+Platform mode is labeled "Full in-platform editing," but driving it live (2026-07-17) it's still a
+<em>scoped natural-language-to-agent</em> request — select an element, describe the change, an agent executes
+it — not a hand-editable code surface. So the narrow point holds (no raw file editing), while a blunt "no
+editing at all" would now be wrong. The entire 8-endpoint API suite is <em>user-hand-authored</em> from
+templates — the platform ships no first-class external API (<code>docs/platform/07</code>, <code>09</code>).
+The only non-agent write path is GitHub Dev Mode, one-way and 15–30 min per iteration
+(<code>docs/platform/16</code>). And when Cursor is over its shared limit, we couldn't reach the alternative
+backend (Audos Code) from the external API — it needs a signed-in browser session, leaving an API-driven
+agent with no build path in that window (<code>feature-requests/0007</code>). Partly a facet of Gap 1, but
+the fix differs. <span class="k">Fixed looks like:</span> a genuine "import this exact code → deterministic
+wrap → publish" path (<code>feature-requests/0005</code>) and an API-reachable build backend.</p>
+</div>
+
+<div class="gap">
+<h3><span class="rank">Gap 10</span> <span class="label">Insecure/opaque identity and config defaults,
+changeable only by side-channel</span></h3>
+<p>EmailGate — the identity layer — is open by default, and we <strong>re-confirmed this live in DoKnow on
+2026-07-17</strong>: on the signed-out live site, typing a completely fabricated, never-used address
+(<code>audit-verify-2026-07-17@example.com</code>) signed straight in — no OTP, no verification step, no
+delay, landing on a real dashboard. Anyone who knows (or guesses the format of) an email can enter as that
+user. OTP exists but is off by default and <strong>exposed through no settings UI</strong> — "the only
+interface is the API directly" (a full settings-surface scan on 2026-07-17 found no OTP toggle anywhere),
+enabled by pasting a <code>fetch()</code> into a logged-in browser console. There is <strong>no built-in
+sign-out primitive</strong> (the avatar menu does nothing; you implement sign-out by deleting localStorage
+keys) and no OAuth option on the sign-in modal — both also re-confirmed live 2026-07-17. The one sub-claim
+we could <strong>not</strong> quickly re-verify is whether sessions ever expire — that needs waiting out an
+unknown TTL, so we leave it sourced to <code>docs/platform/17</code> (2026-04-23) rather than assert it.
+Lowest on the list because it has a known (if ugly) path and didn't block building — but a security-relevant
+default changeable only by a DevTools incantation is the kind of thing that ships insecure.
+<span class="k">Fixed looks like:</span> secure defaults and first-class UI/API config for identity, not a
+browser-console side-channel.</p>
+</div>
+
+<h2 id="working">4. What's actually working well</h2>
+
+<p>An audit that only lists failures isn't credible, and several capability probes came back genuinely
+positive — some surprisingly so. These are load-bearing for the verdict: they're <em>why</em> the failure
+is correctly located in the development loop and not the runtime.</p>
+
+<ul>
+  <li><strong>The real frontend stack survives the pipeline.</strong> react-query, GSAP, Radix, and raw
+  three.js all render via <code>cdnDependencies</code>; react-three-fiber works but is slow to warm up
+  (<code>experiments/0001</code>). The build model doesn't quietly rule out the team's actual libraries.</li>
+  <li><strong>Verbatim design push is high-fidelity and repeatable.</strong> A 903-line self-contained
+  mockup ported element-for-element into a live app, then again combined with real DB wiring in place, both
+  verified by hand (<code>experiments/0003</code>, <code>0006</code>). This sidesteps the "every Audos app
+  looks the same" ceiling entirely.</li>
+  <li><strong>Native embedding <em>generation</em> with no key management.</strong>
+  <code>platform.integrations.proxy('openai', '/v1/embeddings', …)</code> returns real 1,536-float OpenAI
+  embeddings with Audos holding the credential — a generic authenticated passthrough to an
+  <code>openai/stripe/twilio/heygen</code> allowlist (<code>experiments/0012</code>). This is
+  <em>generation only</em>, and must not be confused with search (next bullet).</li>
+  <li><strong>The brute-force similarity <em>workaround</em> is cheap at small scale — but there is no
+  vector search on Audos.</strong> To be unambiguous: there is no vector index and no pgvector (Gap 3) —
+  the only mechanism is a cosine loop in hook JavaScript over embeddings stored as JSON arrays. Its one
+  honest positive is that the arithmetic is cheap (1,536-dim over 1,000 rows scans in 1–3ms, dominated by
+  DB fetch not math — <code>experiments/0013</code>), so the workaround is viable at DoKnow's real scale of
+  tens-to-hundreds of chunks per course. What that benchmark did <strong>not</strong> establish — and what
+  "vector search works" would wrongly imply — is that retrieval <em>quality</em> is good or that it scales;
+  <code>experiments/0008</code> walked back exactly that overreach, and <code>bugs/0015</code> calls the
+  JSON fallback "not a real retrieval index."</li>
+  <li><strong>The shell escape genuinely works, and inherits.</strong> A fresh workspace was born
+  full-screen from the first paint on a single briefing; the fix propagates workspace-wide
+  (<code>experiments/0006</code>). How it was confirmed doubles as a Gap-1 cautionary tale: the
+  <em>first</em> attempt's own "all 5 checks passed live" claim was lost when the job crashed before
+  independent check, and the "confirmed" verdict came only from a <em>second, hands-on</em> verification —
+  Draft-vs-Live by hand, real login, real click — not from trusting any job's word
+  (<code>experiments/0017</code>).</li>
+  <li><strong>Direct SQL is the right escape hatch <em>by design</em> — but we could not reach it this cycle
+  (0-for-3), so treat it as promise, not proof.</strong> Read/write/DDL/<code>DROP</code> were reported
+  working against the workspace schema in April, with the platform "will not overwrite your schema" (no
+  surprise auto-migrations) — but that's <code>docs/platform/13</code>, <strong>Throughline's April
+  workspace, not re-verified this cycle</strong>, and every attempt to actually reach it this cycle failed:
+  field-notes 409s forever, DoKnow's workspace returned a silent 404, Throughline (April) reportedly got
+  "Workspace not found." Three workspaces, three different failures, zero successes on the credential step
+  alone. So it earns a place here only as the <em>correctly shaped</em> escape hatch the platform clearly
+  intends — not as something we saw working. "Full-powered once you're in" can't be asserted with any current
+  confidence, which is exactly why fixing the credential flow (D-5) is the highest-leverage database
+  fix. <strong>Important scoping, though:</strong> the 0-for-3 is about the <em>direct psql connection</em>
+  specifically — <strong>not</strong> about getting data into the database at all (see the next bullet).</li>
+  <li><strong>Writing content to the database <em>does</em> work — via Audos Code, verified live
+  2026-07-17.</strong> The correction that keeps the data-layer story honest: the credential bug blocks the
+  direct-SQL escape hatch, but <strong>not</strong> database writes in general. Using Audos Code's
+  chat-driven DB-write layer (<code>db.insert</code> via its MCP tool calls, on the new Claude Code backend),
+  we populated the field-notes blog site's <code>content_items</code> table from empty — row count
+  <strong>0 → 6</strong> with real corpus content — and verified it two independent ways, not on the agent's
+  word: the workspace's own Preview feed rendered all six items correctly (Field Log / Reference Docs /
+  Tracker, right chips and dates), and the live site's embedded "Field Scout" assistant answered "show me
+  the latest bugs" with the exact two bugs just inserted — <strong>visible on Live immediately, no publish
+  step</strong>. Two honest footnotes: a long free-text paste didn't reach the agent (it flagged that rather
+  than fabricating content — a good honesty signal — and compact single-line JSON went through cleanly), and
+  only 6 of ~64 corpus items were populated in this deliberately small proof-of-path batch (the technique
+  scales, but a full sync is worth scripting).</li>
+  <li><strong>Client-orchestrated hook chaining is clean.</strong> 5/5 sequential calls, ~1–1.8s each, zero
+  friction (<code>experiments/0010</code>) — the runtime is stable under sequential load.</li>
+  <li><strong><code>/api/upload/file</code> is byte-faithful</strong> (md5-identical round-trips to ~50 MiB)
+  and <strong><code>platform.generateText</code> works</strong> as advertised once the real signature was
+  found (<code>docs/platform/19</code>). The primitives are solid; it's the loop around them that isn't.</li>
+  <li><strong>The escalation path exists and is honest.</strong> Priority Support routes to engineering with
+  a transparent automated-triage-then-human tier, seconds to first reply (<code>docs/platform/25</code>);
+  and Otto refused to misuse the paid VA queue for a bug and self-corrected — a real positive on agent
+  judgment.</li>
+</ul>
+
+<p>The pattern across all of these: <strong>once you know the right call shape, the runtime delivers.</strong>
+The cost is entirely in <em>finding</em> the right call shape and <em>confirming</em> it worked — which is
+top-3 territory, not the runtime.</p>
+
+<h2 id="closing">5. Closing verdict</h2>
+
+<div class="verdict">
+<p><strong>Restated plainly: as we found it this cycle, Audos does not yet support hardcore agentic app
+development the way a terminal-attached agent does — but it can host the apps that development would produce,
+and that distinction is the whole story.</strong> The runtime is more capable than its own docs; a real
+product is live on it; libraries, embedding generation, verbatim design, and the shell escape all work. What
+we kept hitting was the loop — Audos keeps the builder an indirection away from ground truth at most layers,
+and a coding agent's effectiveness comes largely from <em>not</em> being kept at that distance.</p>
+</div>
+
+<p>The tax that indirection imposes (verify live, often twice; treat success responses as unverified; poll a
+black box; discover the API by probing) is paid on nearly every change, and reads as structural rather than
+incidental.</p>
+
+<p><strong>If Audos could fix only one thing</strong>, the answer has two levels, and honesty requires
+stating both:</p>
+
+<ul>
+  <li><strong>The architecturally correct fix</strong> is to open the "power-user lane" this repo has been
+  asking for (<code>docs/platform/20</code>, <code>feature-requests/0007</code>, <code>0008</code>) — a
+  direct, authoritative channel to ground truth that doesn't route through a conversational agent or a
+  30-minute git pipeline. Concretely and cheapest: <strong>fix the database-credential flow</strong>
+  (<code>bugs/0023</code>) — which failed three different ways across three workspaces this cycle (409, silent
+  404, "Workspace not found"), zero successes. Getting developers a reliable connection would hand them the
+  one direct path (real transactional SQL) that, <em>if it's as full-powered as the April Throughline finding
+  suggests</em>, would ease most of the Gap 3 cluster. Among the highest capability-per-effort fixes we found
+  — with two honest asterisks: its payoff depends on that not-yet-re-verified "full-powered" claim, and the
+  credential step itself needs more than a one-line wiring fix given how many distinct ways it's currently
+  failing. The 0-for-3 makes it <em>more</em> urgent, not less.</li>
+  <li><strong>The highest-leverage fix <em>within the current paradigm</em></strong> — if the dispatch model
+  stays — is a reliable automated post-build verification gate before a job may report "verified"
+  (<code>feature-requests/0001</code>), backed by surfacing the platform-side publish/gate state back to the
+  agent (<code>docs/platform/20</code>). The encouraging part: <strong>Audos appears to already be building
+  exactly this.</strong> Audos Code ships an in-app browser-test runner, currently shown as <em>paused</em> —
+  "we've disabled the in-app test runner while we make its results reliable enough to trust. It will return
+  soon." That's the right instinct — pause rather than ship false confidence — and it may be the most
+  valuable single thing to get over the line, because we independently reproduced the same day the exact
+  self-report/reality mismatch it would catch (the period-to-exclamation-point edit in Gap 1 that reported
+  success but never changed the page). So this isn't "here's a gap you missed" — it's "the thing you've
+  already paused is, from where we sit, the highest-leverage thing to finish."</li>
+</ul>
+
+<p>The difference between those two is the difference between <em>removing</em> the indirection and
+<em>making it honest</em>. A terminal-attached coding agent needs neither, because it never had the
+indirection to begin with. That's the bar we measured against — not as a sales pitch for either product, but
+because direct, streaming, version-controlled, verifiable access to the real system is what "architected for
+agentic development" means in practice. Audos today is built for something else — and built well for it —
+and, on this evidence, would need to open a second lane to clear that bar. Given that it's already shipping
+Audos Code and a (paused) in-app test runner, some of that second lane may already be under construction.</p>
+
+<p class="footer-note">Audos architecture audit · 2026-07-17 · synthesized from the <code>audos-platform</code>
+evidence corpus (19 experiments, 23 bugs, 9 feature requests, 13 blog entries, platform docs 01–25, and the
+DoKnow/field-notes activity logs). Every claim is traceable to a cited finding in that repo.</p>
+
+</div>
+</body>
+</html>

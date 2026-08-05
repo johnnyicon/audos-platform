@@ -37,8 +37,63 @@ BUGS_DIR = BLOG_DIR / "bugs"
 FR_DIR = BLOG_DIR / "feature-requests"
 EXPERIMENTS_DIR = BLOG_DIR / "experiments"
 PLATFORM_DIR = REPO_ROOT / "docs" / "platform"
+SDK_DIR = REPO_ROOT / "sdk"
+CHANGELOG_PATH = REPO_ROOT / "CHANGELOG.md"
+CAPABILITY_MATRIX_PATH = REPO_ROOT / "CAPABILITY-MATRIX.md"
 FONT_PATH = BLOG_DIR / "assets" / "jetbrains-mono-var.woff2"
 OUT_PATH = BLOG_DIR / "dist" / "index.html"
+
+GITHUB_BLOB_BASE = "https://github.com/johnnyicon/audos-platform/blob/main/"
+
+# The agent skill file: what Audos actually gave us, and what we built on top of
+# it. Shown as a before/after pair, not just another code file.
+AGENT_SKILL_FILES = [
+    {
+        "path": "sdk/skills/otto-pilot/original.md",
+        "title": "Original — as provided by Audos",
+        "blurb": "Unmodified. One monolithic file: a 7-step build (actually 11, see →), no mention of the Cursor Background Agent execution backend or its failure mode, Bearer-header presented as simply “preferred” with no caveat.",
+    },
+    {
+        "path": "sdk/skills/otto-pilot/SKILL.md",
+        "title": "Augmented — corrected, extended, and restructured with progressive disclosure",
+        "blurb": "Same trigger conditions, corrected build-stage count, the Cursor-backend failure mode documented inline, and a lookup table pointing to a portable references/ folder instead of one ever-growing file. Drop the whole sdk/skills/otto-pilot/ folder into any project's skills directory and it works standalone.",
+    },
+    {
+        "path": "sdk/skills/otto-pilot/references/build-execution-and-failures.md",
+        "title": "Bundled reference — build execution and failure modes",
+        "blurb": "What SKILL.md points to when a build job fails, stalls, or hits usage_limit_exceeded. Travels with the skill folder — not a link back into this repo.",
+    },
+    {
+        "path": "sdk/skills/otto-pilot/references/auth-and-chatid.md",
+        "title": "Bundled reference — auth patterns and chatId behavior",
+        "blurb": "What SKILL.md points to when auth misbehaves or chatId needs explaining. Same self-containment: bundled with the skill, not a repo-relative link.",
+    },
+]
+
+# The actual, real SDK — code you can copy and use, not a reference doc. Order
+# matters (TS client, TS onboarding, Go client, Go onboarding, workflow template).
+SDK_CODE_FILES = [
+    {
+        "path": "sdk/src/index.ts",
+        "title": "Workspace hooks client (TypeScript)",
+        "blurb": "createClient() wraps every workspace hook — db, ai, email, web, storage, analytics, crm — behind one typed object. Server-side only (throws if called from a browser).",
+    },
+    {
+        "path": "sdk/src/onboard.ts",
+        "title": "Otto onboarding/chat client (TypeScript)",
+        "blurb": "Talks to Otto over the external onboarding API (start / status / chat) using the confirmed-working body-auth pattern from bugs/0029 — not the still-flaky bearer-header routes.",
+    },
+    {
+        "path": "sdk/go/client.go",
+        "title": "Workspace hooks client (Go)",
+        "blurb": "Same shape as the TypeScript client, for a Go daemon or backend service talking to Audos directly.",
+    },
+    {
+        "path": "sdk/go/onboard.go",
+        "title": "Otto onboarding/chat client (Go)",
+        "blurb": "Go equivalent of the onboarding client — same body-auth pattern, same chatId-as-correlation-ID caveat from feature-requests/0018.",
+    },
+]
 
 # One-line blurbs for the SDK tab — hand-curated (titles are read live from each
 # file, so they can't drift; blurbs need a one-line update here when a new numbered
@@ -71,6 +126,11 @@ PLATFORM_DOC_BLURBS = {
     "25-escalation-and-support-paths.md": "The two real escalation mechanisms that exist for a genuinely stuck job, verified live.",
     "26-unified-space-signed-out-view-is-mandatory.md": "Why EmailGate can't just be disabled, and what happened when we tried to replace it.",
     "27-blog-hosting-cloudflare-worker.md": "How this very blog is hosted — Cloudflare Worker, Basic Auth, and the mistakes made getting there.",
+    "28-otto-onboarding-api-auth-and-chatid.md": "Auth patterns and chatId behavior for the onboarding API — the fuller version of the skill's bundled reference.",
+    "29-otto-tool-surface-vs-app-callable-hooks.md": "Why Otto's ads/analytics/media tools aren't `platform.*` hooks your own app code can call.",
+    "30-analytics-and-reporting-live-verification.md": "Index: which analytics tools we independently verified live, and one real inconsistency found.",
+    "31-ads-and-marketing-live-verification.md": "Index: which ad/marketing tools we independently verified live (no launch, no spend), and one real gap found.",
+    "32-media-generation-live-verification.md": "Index: real video/voiceover/image generation, independently verified by downloading and probing the files.",
 }
 
 CHIP_CLASS = {
@@ -137,7 +197,11 @@ def parse_post(path: Path) -> dict:
 
 
 def build_blog_section(posts: list[Path]) -> dict:
-    entries = [parse_post(p) for p in posts]
+    # Sort by the post's own dated frontmatter, not filename/entry-number order — a
+    # retrospective post (e.g. one written from a research pass mining an older project)
+    # can get a low entry number long after later-dated posts already exist, which buries
+    # it out of chronological order if entries are numbered by file order instead of date.
+    entries = sorted((parse_post(p) for p in posts), key=lambda e: e["date"])
     scorecard_cells, index_links, articles = [], [], []
     for i, e in enumerate(entries, start=1):
         eid = f"entry-{i}"
@@ -288,23 +352,69 @@ def build_experiments_section(paths: list[Path]) -> dict:
     return {"count": len(items), "cards": "".join(cards)}
 
 
-# ─── SDK reference docs (docs/platform/) ───────────────────────────────────
-# Not a log — an index of the durable, generic platform knowledge this project
-# has accumulated. Titles are read live from each file; blurbs are curated above.
+# ─── SDK: real, copy-pasteable client code (sdk/) ──────────────────────────
 
-# Docs that exist in docs/platform/ but shouldn't show up in the blog's SDK index —
-# either not Audos-platform knowledge (27, infra for this blog itself) or superseded/
-# redundant with later docs (01, an early FAQ mostly folded into 02/05/13 since). The
-# files themselves stay in the repo either way; this only controls the blog listing.
-SDK_EXCLUDE = {
+def render_code_cards(files: list[dict]) -> str:
+    cards = []
+    for f in files:
+        full_path = REPO_ROOT / f["path"]
+        if not full_path.exists():
+            continue
+        code = html.escape(full_path.read_text(encoding="utf-8"))
+        gh_url = GITHUB_BLOB_BASE + f["path"]
+        cards.append(f"""
+      <div class="code-card">
+        <div class="code-card-head">
+          <div>
+            <h3>{html.escape(f['title'])}</h3>
+            <p>{html.escape(f['blurb'])}</p>
+          </div>
+          <div class="code-card-actions">
+            <code>{html.escape(f['path'])}</code>
+            <a href="{gh_url}" target="_blank" rel="noopener">View on GitHub &rarr;</a>
+          </div>
+        </div>
+        <pre class="code-block"><code>{code}</code></pre>
+      </div>""")
+    return "".join(cards)
+
+
+def build_sdk_code_section() -> dict:
+    skill_cards = render_code_cards(AGENT_SKILL_FILES)
+    code_cards = render_code_cards(SDK_CODE_FILES)
+    return {
+        "count": len(SDK_CODE_FILES),
+        "skill_cards": skill_cards,
+        "code_cards": code_cards,
+    }
+
+
+# ─── Reference: durable platform knowledge (docs/platform/) ───────────────
+# Not a log, and not the SDK itself — an index of the generic platform
+# knowledge this project has accumulated. Titles are read live from each
+# file; blurbs are curated above.
+
+# Docs that exist in docs/platform/ but shouldn't show up in this index —
+# either not Audos-platform knowledge (27, infra for this blog itself) or
+# superseded/redundant with later docs (01, an early FAQ mostly folded into
+# 02/05/13 since). The files themselves stay in the repo either way; this
+# only controls the blog listing.
+REFERENCE_EXCLUDE = {
     "01-qa-answers.md",
     "27-blog-hosting-cloudflare-worker.md",
 }
 
+# Docs that also have a condensed, agent-facing copy bundled inside a portable
+# skill — noted on the card so the Reference-vs-SDK relationship is explicit
+# instead of looking like two unrelated, possibly-conflicting copies.
+REFERENCE_SKILL_BACKLINK = {
+    "28-otto-onboarding-api-auth-and-chatid.md": "sdk/skills/otto-pilot/references/auth-and-chatid.md",
+}
 
-def build_sdk_section() -> dict:
+
+def build_reference_section() -> dict:
     paths = sorted(PLATFORM_DIR.glob("[0-9][0-9]-*.md")) if PLATFORM_DIR.exists() else []
-    paths = [p for p in paths if p.name not in SDK_EXCLUDE]
+    paths = [p for p in paths if p.name not in REFERENCE_EXCLUDE]
     cards = []
     for p in paths:
         text = p.read_text(encoding="utf-8")
@@ -312,16 +422,95 @@ def build_sdk_section() -> dict:
         title = title_m.group(1).strip() if title_m else p.stem
         num = p.name.split("-", 1)[0]
         blurb = PLATFORM_DOC_BLURBS.get(p.name, "")
+        rel_path = f"docs/platform/{p.name}"
+        gh_url = GITHUB_BLOB_BASE + rel_path
+        skill_path = REFERENCE_SKILL_BACKLINK.get(p.name)
+        skill_note = (
+            f'<div class="filed-ref"><span class="filed-badge filed-yes">condensed copy bundled in the SDK skill</span> &middot; <a href="#" data-jump="panel-sdk">see SDK tab &rarr;</a></div>'
+            if skill_path else ""
+        )
         cards.append(f"""
-      <div class="item-card" id="sdk-{num}">
+      <div class="item-card" id="ref-{num}">
         <div class="item-eyebrow">
           <span class="num">Doc {num}</span>
         </div>
+        {skill_note}
         <h3>{html.escape(title)}</h3>
         <p>{html.escape(blurb)}</p>
-        <div class="filed-ref"><code>docs/platform/{html.escape(p.name)}</code></div>
+        <div class="filed-ref"><code>{html.escape(rel_path)}</code> · <a href="{gh_url}" target="_blank" rel="noopener">read full doc on GitHub &rarr;</a></div>
       </div>""")
     return {"count": len(paths), "cards": "".join(cards)}
+
+
+# ─── Capability Matrix: living "can Audos actually do X" reference ────────
+
+def render_md_table(lines: list[str]) -> str:
+    """Render a simple pipe-delimited markdown table (header, separator, rows) to HTML."""
+    rows = [
+        [c.strip() for c in line.strip().strip("|").split("|")]
+        for line in lines if line.strip().startswith("|")
+    ]
+    if len(rows) < 2:
+        return ""
+    header, body_rows = rows[0], rows[2:]  # rows[1] is the --- separator
+    thead = "".join(f"<th>{inline_md(h)}</th>" for h in header)
+    tbody = "".join(
+        "<tr>" + "".join(f"<td>{inline_md(c)}</td>" for c in r) + "</tr>"
+        for r in body_rows if len(r) == len(header)
+    )
+    return f'<table class="matrix-table"><thead><tr>{thead}</tr></thead><tbody>{tbody}</tbody></table>'
+
+
+def build_capability_matrix_section() -> dict:
+    if not CAPABILITY_MATRIX_PATH.exists():
+        return {"count": 0, "sections": ""}
+    text = CAPABILITY_MATRIX_PATH.read_text(encoding="utf-8")
+    parts = re.split(r"\n##\s+", text)
+    sections = []
+    row_count = 0
+    for part in parts[1:]:  # skip the H1 intro
+        heading, _, rest = part.partition("\n")
+        heading = heading.strip()
+        if heading in ("Status key", "How to keep this current"):
+            continue  # shown separately / as a footer, not as a capability category
+        lines = rest.split("\n---", 1)[0].splitlines()
+        table_html = render_md_table(lines)
+        if not table_html:
+            continue
+        row_count += table_html.count("<tr>") - 1  # minus the header row
+        sections.append(f'<h3 class="matrix-heading">{html.escape(heading)}</h3>{table_html}')
+    return {"count": row_count, "sections": "".join(sections)}
+
+
+# ─── Changelog: the SDK's own dated delta record (CHANGELOG.md) ───────────
+
+def build_changelog_section() -> dict:
+    if not CHANGELOG_PATH.exists():
+        return {"count": 0, "cards": ""}
+    text = CHANGELOG_PATH.read_text(encoding="utf-8")
+    # Entries are "## <date> [(qualifier)] — <title>" headings; body runs until
+    # the next "---" separator or the next "## " heading.
+    parts = re.split(r"\n##\s+", text)
+    cards = []
+    for part in parts[1:]:  # parts[0] is the file's own H1 intro, skip it
+        heading, _, rest = part.partition("\n")
+        body = rest.split("\n---", 1)[0].strip()
+        m = re.match(r"(\d{4}-\d{2}-\d{2})(\s*\([^)]*\))?\s*—\s*(.+)", heading.strip())
+        if m:
+            date, qualifier, title = m.group(1), (m.group(2) or "").strip(" ()"), m.group(3).strip()
+        else:
+            date, qualifier, title = "", "", heading.strip()
+        body_html = render_body(body)
+        cards.append(f"""
+      <div class="item-card">
+        <div class="item-eyebrow">
+          <span class="num">{html.escape(date)}</span>
+          {f'<span class="area-tag">{html.escape(qualifier)}</span>' if qualifier else ''}
+        </div>
+        <h3>{html.escape(title)}</h3>
+        {body_html}
+      </div>""")
+    return {"count": len(cards), "cards": "".join(cards)}
 
 
 def main():
@@ -336,7 +525,10 @@ def main():
     bugs_section = build_bugs_section(bugs) if bugs else None
     fr_section = build_fr_section(frs) if frs else None
     exp_section = build_experiments_section(experiments) if experiments else None
-    sdk_section = build_sdk_section()
+    sdk_code_section = build_sdk_code_section()
+    reference_section = build_reference_section()
+    changelog_section = build_changelog_section()
+    matrix_section = build_capability_matrix_section()
 
     font_b64 = base64.b64encode(FONT_PATH.read_bytes()).decode("ascii")
 
@@ -355,8 +547,15 @@ def main():
         fr_cards=fr_section["cards"] if fr_section else "",
         exp_count=exp_section["count"] if exp_section else 0,
         exp_cards=exp_section["cards"] if exp_section else "",
-        sdk_count=sdk_section["count"],
-        sdk_cards=sdk_section["cards"],
+        sdk_code_count=sdk_code_section["count"],
+        skill_cards=sdk_code_section["skill_cards"],
+        sdk_code_cards=sdk_code_section["code_cards"],
+        reference_count=reference_section["count"],
+        reference_cards=reference_section["cards"],
+        changelog_count=changelog_section["count"],
+        changelog_cards=changelog_section["cards"],
+        matrix_count=matrix_section["count"],
+        matrix_sections=matrix_section["sections"],
     )
 
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -367,10 +566,13 @@ def main():
           f"{bugs_section['count'] if bugs_section else 0} bugs, "
           f"{fr_section['count'] if fr_section else 0} feature requests, "
           f"{exp_section['count'] if exp_section else 0} experiments, "
-          f"{sdk_section['count']} SDK docs, {total} items total)")
+          f"{sdk_code_section['count']} SDK files, {reference_section['count']} reference docs, "
+          f"{changelog_section['count']} changelog entries, {matrix_section['count']} matrix rows, "
+          f"{total} items total)")
 
 
-TEMPLATE = r'''<style>
+TEMPLATE = r'''<meta charset="utf-8">
+<style>
 @font-face{{
   font-family:'JBM'; font-style:normal; font-weight:100 900; font-display:swap;
   src:url(data:font/woff2;base64,{font_b64}) format('woff2');
@@ -465,6 +667,38 @@ footer{{margin-top:2.5rem;padding-top:1.5rem;border-top:1px solid var(--line-str
 .item-card h3{{font-size:1.08rem;margin-bottom:0.85rem;max-width:60ch}}
 .item-card p{{max-width:66ch;margin:0 0 0.9rem;font-size:0.96rem;color:var(--ink)}}
 .item-card .callout{{font-size:0.9rem}}
+.code-card-list{{display:flex;flex-direction:column;gap:1.5rem}}
+.code-card{{background:var(--paper-raised);border:1px solid var(--line);border-radius:4px;overflow:hidden}}
+.code-card-head{{display:flex;justify-content:space-between;align-items:flex-start;gap:1.5rem;flex-wrap:wrap;padding:1.25rem 1.5rem;border-bottom:1px solid var(--line)}}
+.code-card-head h3{{font-size:1.02rem;margin-bottom:0.4rem}}
+.code-card-head p{{font-size:0.9rem;color:var(--ink-soft);max-width:56ch;margin:0}}
+.code-card-actions{{display:flex;flex-direction:column;align-items:flex-end;gap:0.4rem;font-size:0.72rem;white-space:nowrap}}
+.code-card-actions code{{font-size:0.72rem}}
+.code-card-actions a{{font-family:'JBM', monospace;font-weight:700;text-decoration:none}}
+.code-card-actions a:hover{{text-decoration:underline}}
+.code-block{{margin:0;padding:1.25rem 1.5rem;max-height:420px;overflow:auto;background:var(--code-bg);font-family:'JBM', ui-monospace, monospace;font-size:0.82rem;line-height:1.6;color:var(--ink)}}
+.code-block code{{background:none;padding:0;font-size:1em;white-space:pre}}
+.sdk-jumpnav{{display:flex;gap:0.6rem;margin-bottom:2rem}}
+.sdk-jumpnav a{{font-family:'JBM', monospace;font-size:0.72rem;font-weight:700;letter-spacing:0.03em;text-transform:uppercase;text-decoration:none;color:var(--ink-soft);background:var(--paper-raised);border:1px solid var(--line);padding:0.5rem 0.9rem;border-radius:3px;transition:color 0.15s ease,border-color 0.15s ease}}
+.sdk-jumpnav a:hover{{color:var(--accent);border-color:var(--accent)}}
+.sdk-subhead{{margin-bottom:1.5rem;scroll-margin-top:4.5rem}}
+.sdk-subhead-spaced{{margin-top:3rem;padding-top:2rem;border-top:1px solid var(--line-strong)}}
+.sdk-subhead h2{{font-size:1.15rem;margin-bottom:0.6rem}}
+.sdk-subhead .section-intro{{margin-bottom:0}}
+.matrix-wrap{{margin-top:1.5rem;background:var(--paper-raised);border:1px solid var(--line);border-radius:4px;overflow:hidden}}
+.matrix-heading{{font-size:0.95rem;padding:1rem 1.5rem;margin:0;background:var(--code-bg);border-top:1px solid var(--line)}}
+.matrix-heading:first-child{{border-top:none}}
+.matrix-table{{width:100%;border-collapse:collapse;font-size:0.88rem}}
+.matrix-table th,.matrix-table td{{text-align:left;padding:0.65rem 1rem;border-bottom:1px solid var(--line);vertical-align:top}}
+.matrix-table th{{font-family:'JBM', monospace;font-size:0.68rem;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink-faint);font-weight:700}}
+.matrix-table td:first-child{{font-weight:600;white-space:nowrap}}
+.matrix-table td:nth-child(2){{white-space:nowrap;text-align:center}}
+.matrix-table tr:last-child td{{border-bottom:none}}
+.matrix-table tbody tr:hover{{background:var(--accent-soft)}}
+@media (max-width:820px){{
+  .matrix-wrap{{overflow-x:auto}}
+  .matrix-table{{min-width:640px}}
+}}
 @media (max-width:820px){{
   .layout{{grid-template-columns:1fr}}
   .index{{position:static;flex-direction:row;overflow-x:auto;gap:0;border-bottom:1px solid var(--line);padding-bottom:0.25rem;margin-bottom:0.5rem}}
@@ -487,7 +721,7 @@ footer{{margin-top:2.5rem;padding-top:1.5rem;border-top:1px solid var(--line-str
     <div class="masthead-meta">
       {blog_count} entries &middot; {date_range}<br>
       {bugs_open} bugs open, {bugs_fixed} fixed<br>
-      {fr_count} feature requests &middot; {exp_count} experiments &middot; {sdk_count} SDK docs
+      {fr_count} feature requests &middot; {exp_count} experiments
     </div>
   </header>
   <nav class="tabnav" id="tabNav">
@@ -496,7 +730,9 @@ footer{{margin-top:2.5rem;padding-top:1.5rem;border-top:1px solid var(--line-str
     <button data-panel="panel-experiments">Experiments<span class="n">{exp_count}</span></button>
     <button data-panel="panel-bugs">Bugs<span class="n">{bugs_count}</span></button>
     <button data-panel="panel-fr">Feature Requests<span class="n">{fr_count}</span></button>
-    <button data-panel="panel-sdk">SDK<span class="n">{sdk_count}</span></button>
+    <button data-panel="panel-sdk">SDK<span class="n">{sdk_code_count}</span></button>
+    <button data-panel="panel-reference">Reference<span class="n">{reference_count}</span></button>
+    <button data-panel="panel-changelog">Changelog<span class="n">{changelog_count}</span></button>
   </nav>
 
   <section class="panel active" id="panel-blog">
@@ -531,8 +767,41 @@ footer{{margin-top:2.5rem;padding-top:1.5rem;border-top:1px solid var(--line-str
   </section>
 
   <section class="panel" id="panel-sdk">
-    <div class="section-intro">Not a log &mdash; an index. The durable, generic platform knowledge this project has accumulated along the way, distilled out of the bugs, experiments, and posts above and kept as its own reference. Lives in <code>docs/platform/</code> in the SDK repo; each card below is a short pointer to what's actually in there.</div>
-    <div class="card-grid">{sdk_cards}
+    <div class="section-intro">Three things live here, all real and actionable &mdash; not reference prose (that's the <a href="#" data-jump="panel-reference">Reference</a> tab). A <strong>capability matrix</strong> answering "can Audos actually do X" at a glance, an <strong>agent skill</strong> Otto/Claude/any coding agent can load to work with Audos correctly, and a small <strong>client library</strong> for calling Audos's own APIs directly.</div>
+    <nav class="sdk-jumpnav">
+      <a href="#sdk-matrix">Capability Matrix &darr;</a>
+      <a href="#sdk-skill">Agent Skill: before &amp; after &darr;</a>
+      <a href="#sdk-libraries">Client Libraries &darr;</a>
+    </nav>
+    <div class="sdk-subhead" id="sdk-matrix">
+      <h2>Capability Matrix</h2>
+      <p class="section-intro">A living, at-a-glance answer to "can Audos actually do X" &mdash; synthesized from every bug and experiment in this SDK, updated as new findings land. Full source: <code>CAPABILITY-MATRIX.md</code>. ✅ verified working &middot; ⚠️ works with a real caveat &middot; ❌ confirmed not possible &middot; 📄 documented by Audos, not yet independently verified &middot; ❓ open question.</p>
+      <div class="matrix-wrap">{matrix_sections}
+      </div>
+    </div>
+    <div class="sdk-subhead sdk-subhead-spaced" id="sdk-skill">
+      <h2>Agent Skill: before &amp; after</h2>
+      <p class="section-intro">Audos gave us one onboarding skill file. Here's what six months of actually building on the platform let us do with it &mdash; corrected, extended, and restructured so an agent reads only what the situation calls for, instead of one ever-growing document. The two "Bundled reference" cards are what the skill's own progressive-disclosure table points to &mdash; condensed, agent-facing versions of findings that also have a fuller write-up in Reference (linked from each card).</p>
+    </div>
+    <div class="code-card-list">{skill_cards}
+    </div>
+    <div class="sdk-subhead sdk-subhead-spaced" id="sdk-libraries">
+      <h2>Client Libraries</h2>
+      <p class="section-intro">The real thing &mdash; a small, working client for Audos's own APIs, in TypeScript and Go, built from what this project actually learned calling them. Copy a file, drop it in your project, done. Package: <code>@audos/sdk</code> (<code>sdk/package.json</code>).</p>
+    </div>
+    <div class="code-card-list">{sdk_code_cards}
+    </div>
+  </section>
+
+  <section class="panel" id="panel-reference">
+    <div class="section-intro">Not a log, and not the SDK itself &mdash; an index of the durable, generic platform knowledge this project has accumulated, distilled out of the bugs, experiments, and posts above. Lives in <code>docs/platform/</code> in the SDK repo; each card below is a short pointer, with a link to the full doc.</div>
+    <div class="card-grid">{reference_cards}
+    </div>
+  </section>
+
+  <section class="panel" id="panel-changelog">
+    <div class="section-intro">The terse, dated delta &mdash; what actually changed in the SDK's own guidance (corrected docs, new findings, new backlog items), for anyone who wants the summary without the full story. Newest first. Full file: <code>CHANGELOG.md</code>.</div>
+    <div class="card-grid">{changelog_cards}
     </div>
   </section>
 
@@ -580,6 +849,17 @@ footer{{margin-top:2.5rem;padding-top:1.5rem;border-top:1px solid var(--line-str
       window.scrollTo({{ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' }});
     }});
   }}
+
+  // Cross-tab links: [data-jump] switches to another tab's panel instead of
+  // following the href, since panels in other tabs are display:none.
+  document.querySelectorAll('[data-jump]').forEach(function(link){{
+    link.addEventListener('click', function(e){{
+      e.preventDefault();
+      var target = document.querySelector('[data-panel="' + link.dataset.jump + '"]');
+      if (target) target.click();
+      window.scrollTo({{ top: 0, behavior: 'auto' }});
+    }});
+  }});
 }})();
 </script>
 '''
