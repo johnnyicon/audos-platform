@@ -16,6 +16,51 @@ Newest first.
 
 ---
 
+## 2026-08-14 — GPT-5 and the reasoning models now actually work: fix built, deployed and verified
+
+Turned the `bugs/0040` finding into a working capability instead of a documented block.
+
+- **`ai2-api` hook created and verified.** A Cursor delegation job (#108698) built a corrected hook that branches the token parameter on model id. Verified by independent calls, not
+  the job's self-report: `gpt-5`, `gpt-5-mini`, `o3`, `o4-mini` all return real generated text, on
+  **Audos's own OpenAI key** via `platform.integrations.proxy`. No BYOK. Source:
+  `sdk/hooks/ai-api.reference.js`; deployed as an `ai2-api` hook (per-workspace — see
+  `sdk/HOW-TO-USE-AUDOS-AI.md` §9 for how to create it).
+- **`bugs/0040` upgraded from "likely fix" to "fix verified."** The stock `ai-api` hook is still broken
+  and its source remains unreadable/unwritable by any builder tool, which is the part still worth Audos's
+  attention: if that hook is scaffolded per-workspace, everyone on the in-app AI is capped a generation
+  behind and can't fix it.
+- **New finding — reasoning-token budget (Quirk 6).** Reasoning models spend the budget on internal
+  reasoning before emitting text. `gpt-5` at `maxTokens: 2000` returned **empty text** (all 2000 consumed
+  reasoning); 4000 produced real output. Fails silently and still bills. Both SDK clients now default
+  reasoning models to 4000 and raise an explicit error instead of returning "".
+- **Docs corrected:** `AI-HOOK-CAPABILITY-MATRIX.md` (Quirk 4 rewritten as fixed, Quirk 6 added, Tier 2
+  now "working"), `CAPABILITY-MATRIX.md` (model-selection row now ✅, new reasoning-budget row),
+  `sdk/AI-CLIENT.md`. Narrative: `blog/0020`.
+
+## 2026-08-10 — AI hook audited exhaustively: model tiers corrected, vision confirmed, GPT-5 reachable, `@audos/sdk` AI client added
+
+A 43-model live audit of the `ai-api` hook (reading the *upstream* error out of `_meta.logs`) corrected
+several standing claims and produced a real SDK:
+
+- **Model reality is three tiers, not "OpenAI-only, GPT-4-class."** Working: the whole OpenAI GPT-4/3.5
+  family. **Reachable but hook-blocked:** GPT-5 (all sizes), gpt-5.5, gpt-5.6, o1, o3, o3-mini, o4-mini —
+  they return a `400` *parameter* error (proof they're authorized), blocked only because the hook sends
+  `max_tokens` where they need `max_completion_tokens`. Genuinely unavailable: Claude, Fable, Gemini,
+  o1-mini (real `404`s). New backlog `#42`, `blog/bugs/0040`.
+- **Vision works** — corrected. `gpt-4o`/`gpt-4.1` accept OpenAI-style `image_url` content; a red PNG
+  returned "Red". The old "vision not exposed" note was wrong.
+- **The real error lives in `_meta.logs`** — the top-level message flattens to "AI generation failed",
+  but the upstream reason (and its `status`) survive in `_meta.logs`. Not a regression; the SDK client
+  reads it.
+- **`CAPABILITY-MATRIX.md` "Model selection ❌ hard-locked" row corrected** — model selection within the
+  OpenAI family works.
+- **Runtime proxy allowlist = openai/stripe/twilio/heygen** — no Anthropic, so a self-built hook can't
+  reach Claude with Audos's credentials (documents why Claude-in-app isn't available via a hook).
+- **New: `@audos/sdk` AI client** (`sdk/src/ai.ts` + `sdk/go/ai.go`) — chat/complete/generate, vision
+  helpers, usage normalization, real-error surfacing, informative 404s; both verified live. Plus a
+  ready-to-deploy corrected hook (`sdk/hooks/ai-api.reference.js`, unverified until deployed) and
+  `sdk/AI-CLIENT.md`.
+
 ## 2026-08-05 — pgvector re-verified live, plus two findings about the platform's own tooling
 
 Before repeating the 16 July pgvector finding to Audos directly, re-checked it — a three-week-old claim

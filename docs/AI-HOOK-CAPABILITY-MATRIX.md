@@ -11,19 +11,27 @@
 
 These two behaviors are non-obvious, cost time to discover, and affect every caller.
 
+> **Major correction, 2026-08-10.** A 43-model live audit (reading the *upstream* error out of
+> `_meta.logs`) overturned two earlier claims in this doc: **vision works**, and **GPT-5 + the o-series
+> are reachable** — they were mis-recorded as unavailable. See "Available Models" and the two new quirks
+> below. The old "accepted but broken" framing conflated three genuinely different cases.
+
 ### Quirk 1: OpenAI proxy only — not a multi-provider gateway
 
-Despite accepting any model name without validation errors, the hook is an OpenAI proxy under the hood. Only OpenAI-served model IDs return text. Any non-OpenAI name (Claude, Gemini, DeepSeek, Kimi, etc.) routes to OpenAI's API, which 404s with `model_not_found`.
+The hook is an OpenAI proxy. It accepts any model string without pre-validation, but only OpenAI-served
+IDs work. There are **three** distinct outcomes, not two — and the difference is only visible in
+`_meta.logs` (see Quirk 3):
 
-The error path differs by action:
-- `generate` action **silently swallows the error**: returns `success: true` with empty `text`. Nothing indicates failure.
-- `chat` action **surfaces the error properly**: `"OpenAI proxy error: 404 ... The model 'X' does not exist or you do not have access to it"`.
+1. **Works** — OpenAI GPT-4/3.5 family. Returns text.
+2. **Reachable but hook-blocked** — GPT-5 (all sizes), `gpt-5.5`, `gpt-5.6`, `o1`, `o3`, `o3-mini`,
+   `o4-mini`. Upstream returns `400 "Unsupported parameter: 'max_tokens' … Use 'max_completion_tokens'"`.
+   That is a *parameter* error, which OpenAI only returns for a model it has resolved and authorized — so
+   these models **are available**; the hook just sends the wrong token parameter (see Quirk 4).
+3. **Genuinely unavailable** — `404 model_not_found`. Non-OpenAI models (Claude, Fable, Gemini, DeepSeek,
+   Kimi) and models this account lacks (`o1-mini`, `gpt-5.6-sol`). No hook change reaches these through an
+   OpenAI proxy.
 
-Use the `chat` action if you need to verify model routing. Never assume an empty `text` response from `generate` means there is no error.
-
-**Verified working:** `gpt-4.1`, `gpt-4o`, `gpt-4o-mini`, `gpt-4-turbo`
-
-**Accepted but broken (silently 404 through OpenAI):** `claude-sonnet-4-6`, `claude-opus-4-6`, `claude-haiku-4-5-20251001`, `claude-sonnet-4-5`, `gpt-5`, `gemini-1.5-pro`, `gemini-2.0-flash`, `deepseek-chat`, `moonshotai/kimi-k2.5`, `o1-preview`, `o3-mini`
+The 400-vs-404 distinction is the discriminator: `400` param error = reachable, `404` = not.
 
 ### Quirk 2: `generate` action has a hardcoded 1000-token output cap
 
@@ -39,6 +47,67 @@ The `generate` action ignores whatever `maxTokens` you send. Output is capped at
 The `chat` action does not have this cap. The same prompt via `chat` with `maxTokens: 8000` returned 7816 characters (~1900+ tokens).
 
 **For any structured output that may exceed 1000 tokens, use `chat` instead of `generate`.** This includes arc generation, show notes, research synthesis, and any multi-section structured content.
+
+### Quirk 3: the real error hides in `_meta.logs` (2026-08-10)
+
+The top-level `error` field now flattens every model-call failure to a generic `"AI generation failed"`
+(HTTP 500). The **real upstream reason is intact** — it moved into `_meta.logs`:
+
+```json
+{ "error": "AI generation failed", "status": 404,
+  "_meta": { "logs": ["[ERROR] OpenAI proxy error: 404 {\"error\":{\"message\":\"The model `X` does not exist…\"}}"] } }
+```
+
+Always read `_meta.logs[0]` to see why a call failed. The `status` field inside the body is the *upstream*
+OpenAI status (404 = bad model, 400 = bad parameter), distinct from the hook's HTTP 500 wrapper. The
+`@audos/sdk` AI client surfaces this line automatically as the thrown error's `serverError`.
+
+### Quirk 4: `max_tokens` blocks current-generation models — **FIXED AND VERIFIED (2026-08-14)**
+
+GPT-5 and the o-series require `max_completion_tokens`; the original `ai-api` hook always sends
+`max_tokens` (even `maxTokens: 0` sends `max_tokens: 0`; passing your own `max_completion_tokens` is
+ignored). Filed as `blog/bugs/0040`.
+
+**This is now solved.** A corrected hook, `ai2-api`, was created in the DoKnow workspace
+(`workspace-156396`) via a Cursor delegation job. It branches the token parameter on model id. Verified
+live by independent calls, not the job's self-report:
+
+| Model | Served as | Result |
+|---|---|---|
+| `gpt-5` | `gpt-5-2025-08-07` | ✅ real output |
+| `gpt-5-mini` | `gpt-5-mini-2025-08-07` | ✅ |
+| `o3` | `o3-2025-04-16` | ✅ |
+| `o4-mini` | `o4-mini-2025-04-16` | ✅ |
+
+Endpoint: `POST https://audos.com/api/hooks/execute/workspace-{id}/ai2-api` (the hook is per-workspace and
+must be created there first — see `sdk/HOW-TO-USE-AUDOS-AI.md` §9). It calls
+`platform.integrations.proxy('openai', …)`, so it runs on **Audos's OpenAI key** — no BYOK needed.
+Source: `sdk/hooks/ai-api.reference.js`.
+
+**The original `ai-api` hook is still broken** and its source is unreadable/unwritable, which is why the
+fix is a new hook alongside it rather than an edit.
+
+### Quirk 6: reasoning models silently return empty text if `maxTokens` is too low (2026-08-14)
+
+Reasoning models (GPT-5, o-series) spend part of the budget on **internal reasoning** before emitting any
+visible text, and that spend counts against `max_completion_tokens`. Measured on `gpt-5` with a
+moderately complex prompt:
+
+| `maxTokens` | completion tokens | reasoning tokens | visible text |
+|---|---|---|---|
+| 2000 | 2000 | 2000 | **0 chars** (`finish_reason: length`) |
+| 4000 | 1746 | 1152 | 2266 chars ✅ |
+| 8000 | 1926 | 1408 | 1892 chars ✅ |
+
+So a budget that works fine for GPT-4 can yield **nothing** on GPT-5. Use ≥4000 for reasoning models, more
+for complex prompts. The `@audos/sdk` AI client handles this: it defaults reasoning models to 4000 and
+raises an explicit "raise maxTokens" error instead of returning an empty string.
+
+### Quirk 5: vision works (2026-08-10)
+
+Image understanding is available on `gpt-4o`/`gpt-4.1`. Pass `messages[].content` as an OpenAI-style
+array with an `image_url` part (public URL or `data:` URI). Verified: a red PNG returned "Red". The
+earlier "vision not exposed" note was wrong (the test image had been malformed).
 
 ---
 
@@ -56,25 +125,34 @@ The Audos AI hook is an OpenAI proxy with a normalized request/response layer. I
 
 ## Available Models
 
-| Model | Provider | Status | Notes |
-|-------|----------|--------|-------|
-| `gpt-4o` | OpenAI | **Working** | Reliable; ~760ms latency |
-| `gpt-4o-mini` | OpenAI | **Working (DEFAULT)** | Reliable; ~1000ms latency; lower cost |
-| `gpt-4-turbo` | OpenAI | **Working** | Slower |
-| `gpt-4.1` | OpenAI | **Working** | Reliable |
-| `claude-sonnet-4-6` | Anthropic | **Broken** | Accepted; OpenAI proxy 404; `generate` returns empty text silently |
-| `claude-opus-4-6` | Anthropic | **Broken** | Same — OpenAI proxy 404 |
-| `claude-haiku-4-5-20251001` | Anthropic | **Broken** | Same |
-| `claude-sonnet-4-5` | Anthropic | **Broken** | Same |
-| `gpt-5` | OpenAI | **Broken** | Accepted; OpenAI 404 (not available) |
-| `o1-preview` | OpenAI | **Broken** | Accepted; OpenAI 404 |
-| `o3-mini` | OpenAI | **Broken** | Accepted; OpenAI 404 |
-| `gemini-1.5-pro` | Google | **Broken** | Accepted; OpenAI proxy 404 |
-| `gemini-2.0-flash` | Google | **Broken** | Accepted; OpenAI proxy 404 |
-| `deepseek-chat` | DeepSeek | **Broken** | Accepted; OpenAI proxy 404 |
-| `moonshotai/kimi-k2.5` | Moonshot | **Broken** | Accepted; OpenAI proxy 404 |
+Three tiers, from the 43-name audit on 2026-08-10 (status by *upstream* status code):
 
-**For reliable text generation, use: `gpt-4.1`, `gpt-4o`, `gpt-4o-mini`, or `gpt-4-turbo`.**
+**Tier 1 — working now** (returns text):
+
+| Model | Served as | Notes |
+|-------|-----------|-------|
+| `gpt-4o` | `gpt-4o-2024-08-06` | vision-capable |
+| `gpt-4o-mini` | `gpt-4o-mini-2024-07-18` | **default**; vision-capable; lower cost |
+| `gpt-4.1` / `-mini` / `-nano` | `gpt-4.1-*-2025-04-14` | vision-capable |
+| `gpt-4-turbo` | `gpt-4-turbo-2024-04-09` | |
+| `gpt-4` | `gpt-4-0613` | |
+| `gpt-3.5-turbo` | `gpt-3.5-turbo-0125` | |
+
+**Tier 2 — frontier + reasoning, WORKING via the corrected `ai2-api` hook (Quirk 4)** — authorized on the
+proxy; blocked only by the *original* hook's wrong parameter:
+
+`gpt-5`, `gpt-5-mini`, `gpt-5-nano`, `gpt-5.5`, `gpt-5.6`, `o1`, `o3`, `o3-mini`, `o4-mini`.
+Against the old `ai-api` they return `400 "use max_completion_tokens"` (not `404`, which is what proved
+they were available all along). Against `ai2-api` they generate normally — see Quirk 4 for the verified
+results, and Quirk 6 for the token-budget gotcha.
+
+**Tier 3 — genuinely unavailable** (`404 model_not_found`): all `claude-*`, `fable-5` /
+`claude-fable-5*`, all `gemini-*`, `deepseek-chat`, `moonshotai/kimi-k2.5`, `o1-mini`, `gpt-5.6-sol`,
+`chatgpt-4o-latest`, and `anthropic/…` / `google/…` prefixes. Claude/Fable run on the **Otto/job
+surface**, which is not an app-callable API.
+
+**For text today, use a Tier-1 model** (`gpt-4o`, `gpt-4o-mini`, `gpt-4.1`, `gpt-4-turbo`). For GPT-5 or
+reasoning models, a corrected hook is required (Quirk 4).
 
 ---
 
@@ -108,9 +186,12 @@ The hook supports two actions:
 
 **Fields that are accepted but NOT implemented:**
 - `tools` — accepted, silently ignored; tool calling not supported
-- `response_format` — accepted for `{"type": "json_object"}`; GPT models will honor it
-- `image_url` — accepted but not processed (vision not yet implemented)
+- `response_format` — accepted but silently ignored (verified 2026-08-10; JSON mode not enforced)
 - `stream` — accepted but always returns full text; streaming not supported
+
+**Vision IS supported** (corrected 2026-08-10): pass `messages[].content` as an OpenAI-style array
+containing an `image_url` part (public URL or `data:` URI). Verified on `gpt-4o` — a red PNG returned
+"Red". The earlier "not processed" note was wrong.
 
 #### `chat` — Multi-turn conversation
 

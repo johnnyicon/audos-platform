@@ -1,3 +1,18 @@
+// Standalone, browser-safe AI client — leverage a workspace's ai-api hook (OpenAI
+// text) from any app, including client-side. See ai.ts for the provider/model reality.
+export {
+  createAudosAI,
+  imageMessage,
+  AUDOS_AI_MODELS,
+  AudosAIError,
+  type AudosAIConfig,
+  type ChatMessage,
+  type ContentPart,
+  type ChatOptions,
+  type AIResult,
+  type AIUsage,
+} from './ai.js';
+
 export interface AudosClientConfig {
   workspaceId: string;
   apiKey: string;
