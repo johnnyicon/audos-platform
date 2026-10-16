@@ -31,6 +31,7 @@ Do not load all docs upfront. Read the specific file for the task at hand.
 | Work with the database or tables | `/Users/kanekoa/Workspace/audos-platform/docs/throughline/database-api.md` |
 | Generate AI content (quick reference) | `/Users/kanekoa/Workspace/audos-platform/docs/throughline/ai-generation-api.md` |
 | **AI hook capability matrix** (models, latency, vision/tools/JSON mode) | `/Users/kanekoa/Workspace/audos-platform/docs/AI-HOOK-CAPABILITY-MATRIX.md` |
+| **The AI hook's ~40 s execution cutoff and reasoning-model latency** (why long answers get `"No response from AI model"`, `temperature: 1` for `gpt-5.5`, split-and-parallelise pattern with measured times) | `/Users/kanekoa/Workspace/audos-platform/docs/platform/33-ai-hook-execution-timeout-and-reasoning-latency.md` |
 | Send email | `/Users/kanekoa/Workspace/audos-platform/docs/throughline/email-api.md` |
 | Manage contacts / CRM | `/Users/kanekoa/Workspace/audos-platform/docs/throughline/crm-api.md` |
 | Read analytics | `/Users/kanekoa/Workspace/audos-platform/docs/throughline/analytics-api.md` |

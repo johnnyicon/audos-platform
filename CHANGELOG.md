@@ -16,6 +16,24 @@ Newest first.
 
 ---
 
+## 2026-10-15 — The AI hook's ~40 s cutoff documented; `gpt-5.5` needs `temperature: 1`
+
+- New `docs/platform/33`: the server-function execution limit applies to AI chat calls and surfaces as
+  `"No response from AI model"` (HTTP 500, `_meta.success: true`) at ~40–45 s; reasoning models' long
+  answers hit it; measured per-request times; split, parallelise and retry-once pattern (303 s → 124 s).
+- `gpt-5.5` refuses the hook's default `temperature` 0.7; send `1`. The stock `ai-api` on
+  workspace-351699 now serves `gpt-5.5` (Quirk 4's corrected-hook requirement no longer holds there).
+- Backlog `#45` opened and **filed** the same day through Priority Support (ticket `351699-84HKUSAA`).
+  Filing path confirmed again: Help → New Request is a free-text box that Otto drafts into a structured
+  report, then Submit; a Help-panel action, no API (`#43`). The text box needs real keystrokes before
+  Send registers, and the bottom-right notice toast can sit over the Send button.
+- Ticket replies are readable from a signed-in tab: `GET /api/feature-requests/<ws UUID>/requests/<id>/messages`
+  (`{requestId, messages[], total}`; `senderType` user/admin). Reading the Throughline backlog of replies showed
+  **Audos pays wallet bug bounties** for accepted bug reports ($30 and $17 credited 2026-07-21 for the DNS and
+  Otto-API tickets), which is a reason to file the backlog's unfiled items.
+
+---
+
 ## 2026-08-14 — GPT-5 and the reasoning models now actually work: fix built, deployed and verified
 
 Turned the `bugs/0040` finding into a working capability instead of a documented block.
